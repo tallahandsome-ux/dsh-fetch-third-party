@@ -17,6 +17,8 @@ Core capabilities:
 - **Per-session budget**: 10 fetches per session by default; further calls are refused with a clear message.
 - **GUI settings card**: test connection / local proxy / custom provider management / clear key.
 - **Auto-managed local Crawl4AI stack**: when the primary or fallback provider is a loopback custom provider, the plugin starts the container and the wrapper process automatically, with a real-time watchdog for self-healing.
+- **Fetch cache**: repeated fetches of the same URL within the TTL are served from memory — no third-party quota used, no session budget consumed.
+- **SSRF defense-in-depth**: targets on loopback / private / reserved addresses requested by the model are rejected before forwarding (important when a self-hosted Crawl4AI shares the local network).
 
 ## How it works
 
@@ -116,6 +118,13 @@ http://127.0.0.1:27822
 - Takes effect **per request** (undici `ProxyAgent` dispatcher), without affecting other traffic
 - Blank = direct connection
 
+### Fetch cache and target safety
+
+### Fetch cache and target safety
+
+- **Fetch cache** (card level-2): toggle + TTL (seconds). Repeated fetches of the same URL within the TTL are served from memory — no third-party quota, no budget. Enabled by default, 600s TTL.
+- **Reject private targets** (card level-2): refuse loopback / private / reserved targets before forwarding, preventing the model from reaching internal resources. Enabled by default.
+- **Tool name** (config `toolName`, not in the card): `web_fetch_url` (default) / `web_fetch` / `auto`. Choosing the official name `web_fetch` auto-falls-back to `web_fetch_url` if it is taken.
 ### Self-hosted fetch tool (Crawl4AI, zero API key)
 
 When you do not want to depend on commercial providers, self-host **Crawl4AI** (Docker) plus a contract-v1 wrapper, registered as a **custom provider** — no API key needed, still "courier mode".
