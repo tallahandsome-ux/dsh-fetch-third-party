@@ -86,4 +86,5 @@ const DEFAULT_CONFIG: Config = {
   cacheEnabled: true,
   cacheTtlSeconds: DEFAULT_CACHE_TTL_SECONDS,
   cacheMaxEntries: DEFAULT_CACHE_MAX_ENTRIES,
+  rejectPrivateTargets: true,
 }

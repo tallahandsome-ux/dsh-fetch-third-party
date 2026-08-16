@@ -34,6 +34,7 @@ interface ConfigView {
   cacheEnabled: boolean
   cacheTtlSeconds: number
   cacheMaxEntries: number
+  rejectPrivateTargets: boolean
   writable: boolean
   apiKeyConfigured: boolean
   apiKeyWritable: boolean
@@ -520,6 +521,21 @@ export function FetchCard(props: FetchCardProps) {
                 </div>
                 <p style={styles.hint}>{t('cacheHint')}</p>
               </label>
+
+              <label style={styles.field}>
+                <span style={styles.label}>{t('rejectPrivate')}</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#555' }}>
+                  <input
+                    type="checkbox"
+                    checked={view.rejectPrivateTargets}
+                    disabled={disabled}
+                    onChange={(event) => void saveField('rejectPrivateTargets', event.target.checked)}
+                  />
+                  {t('rejectPrivateEnable')}
+                </label>
+                <p style={styles.hint}>{t('rejectPrivateHint')}</p>
+              </label>
+
               <label style={styles.field}>
                 <span style={styles.label}>{t('apiKey')}</span>
                 <input

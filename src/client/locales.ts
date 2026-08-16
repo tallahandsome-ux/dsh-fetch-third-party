@@ -12,6 +12,7 @@ export type FetchCardLocaleKey =
   | 'baseUrl' | 'baseUrlHint' | 'customEndpointHint'
   | 'maxFetches' | 'maxFetchesHint'
   | 'cacheSection' | 'cacheEnable' | 'cacheSeconds' | 'cacheHint'
+  | 'rejectPrivate' | 'rejectPrivateEnable' | 'rejectPrivateHint'
   | 'proxy' | 'proxyHint' | 'proxyEnable' | 'proxyOffHint'
   | 'save' | 'saving' | 'saveSuccess' | 'saveFailed'
   | 'clear'
@@ -44,6 +45,9 @@ export const en: Record<FetchCardLocaleKey, string> = {
   cacheEnable: 'Enable',
   cacheSeconds: 'seconds TTL',
   cacheHint: 'Repeated fetches of the same URL within the TTL are served from memory — no third-party quota used, no budget consumed.',
+  rejectPrivate: 'Target address safety',
+  rejectPrivateEnable: 'Reject private-network targets',
+  rejectPrivateHint: 'Defense-in-depth: refuse targets on loopback / private / reserved addresses before forwarding to the provider.',
   proxy: 'Local proxy',
   proxyHint: 'Optional HTTP proxy, e.g. http://127.0.0.1:27822, for networks that block the service. Applies per request to every provider; leave blank for direct.',
   proxyEnable: 'Enable',
@@ -98,6 +102,9 @@ export const zh: Record<FetchCardLocaleKey, string> = {
   cacheEnable: '启用',
   cacheSeconds: '秒有效期',
   cacheHint: '同一 URL 在有效期内重复抓取直接走内存缓存——不消耗第三方额度，也不消耗会话预算。',
+  rejectPrivate: '目标地址安全',
+  rejectPrivateEnable: '拒绝内网目标',
+  rejectPrivateHint: '纵深防御：转发前拒绝回环/私网/保留地址目标，防止模型诱导抓取内网资源。',
   proxy: '本地代理',
   proxyHint: '可选 HTTP 代理，如 http://127.0.0.1:27822，用于网络被阻断的服务。对所有服务商生效，按请求代理；留空走直连。',
   proxyEnable: '启用',

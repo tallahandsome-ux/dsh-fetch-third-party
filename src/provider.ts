@@ -18,6 +18,7 @@ import { firecrawlAdapter } from './adapters/firecrawl.ts'
 import { customAdapter } from './adapters/custom.ts'
 import type { FetchBudget } from './budget.ts'
 import type { FetchCache } from './cache.ts'
+import { validateTargetURL } from './ssrf.ts'
 import { resolveProvider, type Config } from './settings.ts'
 
 /**
@@ -76,6 +77,10 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
 
   async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
     const config = this.config()
+    // Defense-in-depth: refuse private/reserved targets the model asks for.
+    if (config.rejectPrivateTargets) {
+      validateTargetURL(request.url)
+    }
     // A cache hit neither hits the third-party service nor consumes the budget.
     if (config.cacheEnabled) {
       const hit = this.cache.get(request.url)

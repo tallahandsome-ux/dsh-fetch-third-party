@@ -168,6 +168,8 @@ export interface Config {
   cacheTtlSeconds: number
   /** Maximum cache entries before LRU eviction. */
   cacheMaxEntries: number
+  /** Reject model-requested targets on private/reserved addresses (defense-in-depth). */
+  rejectPrivateTargets: boolean
 }
 
 /**
@@ -189,4 +191,5 @@ export const Config: z<Config> = z.object({
   cacheEnabled: z.boolean().default(true),
   cacheTtlSeconds: z.natural().default(DEFAULT_CACHE_TTL_SECONDS),
   cacheMaxEntries: z.natural().default(DEFAULT_CACHE_MAX_ENTRIES),
+  rejectPrivateTargets: z.boolean().default(true),
 })
