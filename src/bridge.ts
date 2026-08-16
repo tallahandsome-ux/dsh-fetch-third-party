@@ -41,6 +41,7 @@ interface ConfigView {
   cacheEnabled: boolean
   cacheTtlSeconds: number
   cacheMaxEntries: number
+  rejectPrivateTargets: boolean
   writable: boolean
   apiKeyConfigured: boolean
   apiKeyWritable: boolean
@@ -249,6 +250,7 @@ async function viewOf(ctx: Context, config: () => Config): Promise<ConfigView> {
     cacheEnabled: section.cacheEnabled,
     cacheTtlSeconds: section.cacheTtlSeconds,
     cacheMaxEntries: section.cacheMaxEntries,
+    rejectPrivateTargets: section.rejectPrivateTargets,
     writable: true,
     apiKeyConfigured,
     apiKeyWritable,
