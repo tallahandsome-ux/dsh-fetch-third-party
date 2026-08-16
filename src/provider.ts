@@ -18,6 +18,7 @@ import { firecrawlAdapter } from './adapters/firecrawl.ts'
 import { customAdapter } from './adapters/custom.ts'
 import type { FetchBudget } from './budget.ts'
 import type { FetchCache } from './cache.ts'
+import { classifyFailure, FallbackRouter, type ChainRow } from './fallback.ts'
 import { validateTargetURL } from './ssrf.ts'
 import { resolveProvider, type Config } from './settings.ts'
 
@@ -64,6 +65,9 @@ export interface TestFetchResult {
 export class ThirdPartyFetchProvider implements WebFetchProvider {
   readonly id = 'third-party'
 
+  private router: FallbackRouter | null = null
+  private routerKey = ''
+
   constructor(
     private readonly ctx: Context,
     private readonly config: () => Config,
@@ -97,7 +101,7 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
         WEB_FETCH_BUDGET_EXHAUSTED,
       )
     }
-    const outcome = await this.attemptWithFallback(config, request, signal)
+    const outcome = await this.attemptWithChain(config, request, signal, true)
     // Only cache successful, non-empty results (error pages are transient).
     if (config.cacheEnabled
       && outcome.result.statusCode < ERROR_STATUS_THRESHOLD
@@ -119,7 +123,7 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     const request: WebFetchRequest = { url }
     const started = Date.now()
     try {
-      const { result, servedBy } = await this.attemptWithFallback(config, request, undefined)
+      const { result, servedBy } = await this.attemptWithChain(config, request, undefined, false)
       return {
         ok: result.statusCode < ERROR_STATUS_THRESHOLD,
         servedBy,
@@ -137,68 +141,79 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     }
   }
 
-  /** Run primary → fallback for one request; reports the provider that served. */
-  private async attemptWithFallback(
+  /**
+   * Run the dynamic fallback chain for one request; reports the provider that
+   * served. Each failure cools its provider down (quota or exponential backoff)
+   * so the next provider in the chain is tried; a success resets the counter.
+   * @param persist - record cooldown state (false for the card's test fetch).
+   */
+  private async attemptWithChain(
     config: Config,
     request: WebFetchRequest,
     signal: AbortSignal | undefined,
+    persist: boolean,
   ): Promise<FetchOutcome> {
-    const primaryName = config.adapter
-    const primary = await this.adapterFor(config, primaryName)
-    if (primary === undefined) {
-      throw new WebError(`unknown provider "${primaryName}"`, 'WEB_PROVIDER_ERROR')
+    const router = this.chainRouter(config)
+    const tried = new Set<string>()
+    const failures: string[] = []
+    let lastError: unknown = null
+    for (;;) {
+      const name = router.next(tried)
+      if (name === undefined) break
+      tried.add(name)
+      const adapter = await this.adapterFor(config, name)
+      if (adapter === undefined) continue // unknown provider: skip
+      let result: WebFetchResult
+      try {
+        result = await adapter.fetch(await this.providerContext(config, name), request, signal)
+      } catch (error) {
+        failures.push(`${name} 抛错`)
+        lastError = error
+        if (persist) router.recordFailure(name, classifyFailure(error))
+        continue
+      }
+      if (result.statusCode >= ERROR_STATUS_THRESHOLD) {
+        failures.push(`${name} HTTP ${result.statusCode}`)
+        lastError = new WebError(`${name} 返回 HTTP ${result.statusCode}`, 'WEB_PROVIDER_ERROR')
+        if (persist) router.recordFailure(name, classifyFailure(null, result.statusCode))
+        continue
+      }
+      if (persist) router.recordSuccess(name)
+      return { result, servedBy: name }
     }
-    let result: WebFetchResult
-    try {
-      result = await primary.fetch(
-        await this.providerContext(config, primaryName), request, signal,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      const fallback = await this.tryFallback(config, request, signal, message)
-      if (fallback !== undefined) return fallback
-      throw new WebError(`${primaryName} 抓取失败：${message}`, 'WEB_PROVIDER_ERROR', { cause: error })
-    }
-    if (result.statusCode >= ERROR_STATUS_THRESHOLD) {
-      const fallback = await this.tryFallback(
-        config, request, signal, `${primaryName} 返回 HTTP ${result.statusCode}`,
-      )
-      if (fallback !== undefined) return fallback
-    }
-    return { result, servedBy: primaryName }
+    const detail = tried.size > 0
+      ? `尝试了 ${[...tried].join(' → ')}：${lastError instanceof Error ? lastError.message : '全部失败'}`
+      : '回退链为空或全部不可用'
+    throw new WebError(`抓取失败（${detail}）`, 'WEB_PROVIDER_ERROR', lastError !== null && lastError !== undefined ? { cause: lastError } : undefined)
   }
 
-  /**
-   * Attempt the configured fallback provider (default Jina — keyless).
-   * Returns the fallback outcome, or undefined when no fallback applies.
-   * A fallback that also fails throws a combined error.
-   */
-  private async tryFallback(
-    config: Config,
-    request: WebFetchRequest,
-    signal: AbortSignal | undefined,
-    primaryFailure: string,
-  ): Promise<FetchOutcome | undefined> {
-    const fallbackName = config.fallback
-    if (fallbackName === config.adapter || fallbackName.length === 0) return undefined
-    const fallback = await this.adapterFor(config, fallbackName)
-    if (fallback === undefined) return undefined
-    try {
-      const result = await fallback.fetch(
-        await this.providerContext(config, fallbackName), request, signal,
-      )
-      if (result.statusCode >= ERROR_STATUS_THRESHOLD) {
-        throw new WebError(`fallback ${fallbackName} returned HTTP ${result.statusCode}`, 'WEB_PROVIDER_ERROR')
-      }
-      return { result, servedBy: fallbackName }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      throw new WebError(
-        `主服务商 ${config.adapter} 失败（${primaryFailure}），回退 ${fallbackName} 也失败：${message}`,
-        'WEB_PROVIDER_ERROR',
-        { cause: error },
-      )
+  /** The chain used for routing: explicit config, else adapter+fallback. */
+  private effectiveChain(config: Config): string[] {
+    if (config.fallbackChain.length > 0) return [...config.fallbackChain]
+    return [config.adapter, config.fallback].filter((name) => name.length > 0)
+  }
+
+  /** The router for the current chain; rebuilt only when the chain changes. */
+  private chainRouter(config: Config): FallbackRouter {
+    const chain = this.effectiveChain(config)
+    const key = chain.join(',')
+    if (this.router === null || key !== this.routerKey) {
+      this.router = new FallbackRouter(chain, () => {
+        const c = this.config()
+        return {
+          enabled: c.cooldownEnabled,
+          quotaSeconds: c.quotaCooldownSeconds,
+          failureSeconds: c.failureCooldownSeconds,
+        }
+      })
+      this.routerKey = key
     }
+    return this.router
+  }
+
+  /** Live chain order + cooldown state, for the settings card. */
+  chainSnapshot(): ChainRow[] {
+    return this.chainRouter(this.config()).snapshot()
   }
 
   /** The adapter driving one provider name, or undefined when unknown. */

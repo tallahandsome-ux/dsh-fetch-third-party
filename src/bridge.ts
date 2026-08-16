@@ -21,6 +21,7 @@ import {
   type Config, type CustomProvider,
 } from './settings.ts'
 import { NAMESPACE } from './settings.ts'
+import type { ChainRow } from './fallback.ts'
 
 /** Route prefix for this plugin's settings bridge. */
 const BRIDGE_PREFIX = '/api/fetch-third-party'
@@ -42,6 +43,10 @@ interface ConfigView {
   cacheTtlSeconds: number
   cacheMaxEntries: number
   rejectPrivateTargets: boolean
+  fallbackChain: string[]
+  cooldownEnabled: boolean
+  quotaCooldownSeconds: number
+  failureCooldownSeconds: number
   writable: boolean
   apiKeyConfigured: boolean
   apiKeyWritable: boolean
@@ -59,6 +64,7 @@ export function mountFetchBridge(
   ctx: Context,
   config: () => Config,
   test: (url: string) => Promise<TestFetchResult>,
+  chain: () => ChainRow[],
 ): void {
   ctx.inject(['settings', 'credentials', 'webServer'], (sctx) => {
     sctx.effect(() => {
@@ -77,6 +83,11 @@ export function mountFetchBridge(
           kind: 'exact',
           path: `${BRIDGE_PREFIX}/test`,
           handler: (req, res) => void handleTest(sctx, test, req, res),
+        }),
+        sctx.webServer.register({
+          kind: 'exact',
+          path: `${BRIDGE_PREFIX}/chain`,
+          handler: (req, res) => void handleChain(chain, req, res),
         }),
         sctx.webServer.register({
           kind: 'exact',
@@ -161,6 +172,17 @@ async function handleTest(
     return sendJson(res, 400, { error: 'invalid test URL' })
   }
   return sendJson(res, 200, await test(url))
+}
+
+/** GET the live fallback chain order + cooldown state. */
+async function handleChain(
+  chain: () => ChainRow[],
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!loopbackPeer(req)) return sendJson(res, 403, { error: 'loopback-only' })
+  if (req.method !== 'GET') return sendJson(res, 405, { error: 'method not allowed' })
+  return sendJson(res, 200, { chain: chain() })
 }
 
 /** POST a custom-provider list edit (`add` / `update` / `remove` / `replace`). */
@@ -251,6 +273,10 @@ async function viewOf(ctx: Context, config: () => Config): Promise<ConfigView> {
     cacheTtlSeconds: section.cacheTtlSeconds,
     cacheMaxEntries: section.cacheMaxEntries,
     rejectPrivateTargets: section.rejectPrivateTargets,
+    fallbackChain: section.fallbackChain,
+    cooldownEnabled: section.cooldownEnabled,
+    quotaCooldownSeconds: section.quotaCooldownSeconds,
+    failureCooldownSeconds: section.failureCooldownSeconds,
     writable: true,
     apiKeyConfigured,
     apiKeyWritable,

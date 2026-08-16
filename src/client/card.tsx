@@ -35,9 +35,20 @@ interface ConfigView {
   cacheTtlSeconds: number
   cacheMaxEntries: number
   rejectPrivateTargets: boolean
+  fallbackChain: string[]
+  cooldownEnabled: boolean
+  quotaCooldownSeconds: number
+  failureCooldownSeconds: number
   writable: boolean
   apiKeyConfigured: boolean
   apiKeyWritable: boolean
+}
+
+/** One row of the live fallback chain. */
+interface ChainRow {
+  name: string
+  inCooldown: boolean
+  remainingSec: number
 }
 
 /** Result of the connection test. */
@@ -57,6 +68,7 @@ const CONFIG_URL = '/api/fetch-third-party/config'
 const KEY_URL = '/api/fetch-third-party/key'
 const TEST_URL = '/api/fetch-third-party/test'
 const CUSTOM_URL = '/api/fetch-third-party/custom'
+const CHAIN_URL = '/api/fetch-third-party/chain'
 
 /** The built-in service-provider options (custom names are appended). */
 const ADAPTER_OPTIONS: ReadonlyArray<{ id: string; label: string }> = [
@@ -101,6 +113,7 @@ export function FetchCard(props: FetchCardProps) {
   const [testResult, setTestResult] = useState<TestResult | null>(null)
   const [customsOpen, setCustomsOpen] = useState(false)
   const [customs, setCustoms] = useState<CustomProvider[]>([])
+  const [chainRows, setChainRows] = useState<ChainRow[]>([])
 
   const load = async (): Promise<void> => {
     try {
@@ -116,6 +129,20 @@ export function FetchCard(props: FetchCardProps) {
   }
 
   useEffect(() => { void load() }, [])
+
+  const loadChain = async (): Promise<void> => {
+    try {
+      const res = await fetch(CHAIN_URL)
+      if (res.ok) {
+        const body = await res.json() as { chain: ChainRow[] }
+        setChainRows(body.chain ?? [])
+      }
+    } catch {
+      // keep the last known chain
+    }
+  }
+
+  useEffect(() => { void loadChain() }, [])
 
   const saveField = async (field: string, value: unknown): Promise<void> => {
     setSaving(true)
@@ -536,6 +563,46 @@ export function FetchCard(props: FetchCardProps) {
                 <p style={styles.hint}>{t('rejectPrivateHint')}</p>
               </label>
 
+              <label style={styles.field}>
+                <span style={styles.label}>{t('chainSection')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#555', whiteSpace: 'nowrap' }}>
+                    <input
+                      type="checkbox"
+                      checked={view.cooldownEnabled}
+                      disabled={disabled}
+                      onChange={(event) => { void saveField('cooldownEnabled', event.target.checked); void loadChain() }}
+                    />
+                    {t('chainCooldown')}
+                  </label>
+                  <input
+                    style={{ ...styles.input, width: 90 }}
+                    type="number"
+                    min={0}
+                    value={view.quotaCooldownSeconds}
+                    disabled={disabled || !view.cooldownEnabled}
+                    onChange={(event) => setView(prev => prev ? { ...prev, quotaCooldownSeconds: Number(event.target.value) } : prev)}
+                    onBlur={(event) => { void saveField('quotaCooldownSeconds', Number(event.target.value)); void loadChain() }}
+                  />
+                  <span style={{ fontSize: 12, color: '#666' }}>{t('chainQuotaSeconds')}</span>
+                </div>
+                <input
+                  style={styles.input}
+                  value={(view.fallbackChain ?? []).join(',')}
+                  disabled={disabled}
+                  placeholder="crawl4ai,tavily,jina"
+                  onChange={(event) => setView(prev => prev ? { ...prev, fallbackChain: event.target.value.split(',').map(s => s.trim()).filter(Boolean) } : prev)}
+                  onBlur={(event) => { void saveField('fallbackChain', event.target.value.split(',').map(s => s.trim()).filter(Boolean)); void loadChain() }}
+                />
+                <p style={styles.hint}>{t('chainHint')}</p>
+                {chainRows.length > 0 && (
+                  <div style={{ fontSize: 12, color: '#666', lineHeight: 1.6 }}>
+                    {chainRows.map(row => (
+                      <div key={row.name}>{row.inCooldown ? `${row.name}（冷却中 ${row.remainingSec}s）` : row.name}</div>
+                    ))}
+                  </div>
+                )}
+              </label>
               <label style={styles.field}>
                 <span style={styles.label}>{t('apiKey')}</span>
                 <input

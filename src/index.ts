@@ -16,7 +16,8 @@ import { ThirdPartyFetchProvider } from './provider.ts'
 import {
   Config, DEFAULT_ADAPTER, DEFAULT_BASE_URL, DEFAULT_CACHE_MAX_ENTRIES,
   DEFAULT_CACHE_TTL_SECONDS, DEFAULT_FALLBACK,
-  DEFAULT_MAX_FETCHES, DEFAULT_TOOL_NAME, NAMESPACE,
+  DEFAULT_FAILURE_COOLDOWN_SECONDS, DEFAULT_MAX_FETCHES, DEFAULT_QUOTA_COOLDOWN_SECONDS,
+  DEFAULT_TOOL_NAME, NAMESPACE,
 } from './settings.ts'
 import { applyWebFetchUrlTool } from './tool.ts'
 
@@ -62,7 +63,7 @@ export function apply(ctx: Context, config: Config = DEFAULT_CONFIG): void {
   const provider = new ThirdPartyFetchProvider(ctx, current, budget, cache)
   ctx.web.registerFetchProvider(provider)
   applyWebFetchUrlTool(ctx, current)
-  mountFetchBridge(ctx, current, (url) => provider.testFetch(url))
+  mountFetchBridge(ctx, current, (url) => provider.testFetch(url), () => provider.chainSnapshot())
 
   // Kill the wrapper child when the plugin unloads (dsh web shuts down).
   ctx.effect(() => () => stack.shutdown())
@@ -88,4 +89,8 @@ const DEFAULT_CONFIG: Config = {
   cacheMaxEntries: DEFAULT_CACHE_MAX_ENTRIES,
   rejectPrivateTargets: true,
   toolName: DEFAULT_TOOL_NAME,
+  fallbackChain: [],
+  cooldownEnabled: true,
+  quotaCooldownSeconds: DEFAULT_QUOTA_COOLDOWN_SECONDS,
+  failureCooldownSeconds: DEFAULT_FAILURE_COOLDOWN_SECONDS,
 }

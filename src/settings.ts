@@ -35,6 +35,10 @@ export const DEFAULT_CACHE_TTL_SECONDS = 600
 export const DEFAULT_CACHE_MAX_ENTRIES = 200
 /** Default model-facing tool name. */
 export const DEFAULT_TOOL_NAME = 'web_fetch_url'
+/** Default cooldown (seconds) after a provider quota-exhaustion. */
+export const DEFAULT_QUOTA_COOLDOWN_SECONDS = 3600
+/** Default base cooldown (seconds) for ordinary failures. */
+export const DEFAULT_FAILURE_COOLDOWN_SECONDS = 60
 
 /**
  * Standard credential reference per adapter. The section's `apiKeyEnv` is
@@ -174,6 +178,14 @@ export interface Config {
   rejectPrivateTargets: boolean
   /** Tool name preference: 'web_fetch_url' | 'web_fetch' | 'auto'. */
   toolName: string
+  /** Ordered fallback chain (provider names); empty = derive from adapter+fallback. */
+  fallbackChain: string[]
+  /** Enable dynamic cooldown-based fallback. */
+  cooldownEnabled: boolean
+  /** Cooldown (seconds) when a provider's quota is exhausted. */
+  quotaCooldownSeconds: number
+  /** Base cooldown (seconds) for ordinary failures (exponential backoff). */
+  failureCooldownSeconds: number
 }
 
 /**
@@ -197,4 +209,8 @@ export const Config: z<Config> = z.object({
   cacheMaxEntries: z.natural().default(DEFAULT_CACHE_MAX_ENTRIES),
   rejectPrivateTargets: z.boolean().default(true),
   toolName: z.string().default(DEFAULT_TOOL_NAME),
+  fallbackChain: z.array(z.string()).default([]),
+  cooldownEnabled: z.boolean().default(true),
+  quotaCooldownSeconds: z.natural().default(DEFAULT_QUOTA_COOLDOWN_SECONDS),
+  failureCooldownSeconds: z.natural().default(DEFAULT_FAILURE_COOLDOWN_SECONDS),
 })
