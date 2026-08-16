@@ -13,6 +13,7 @@
   "files": [
     "lib",
     "scripts",
+    "docs",
     "cordis.patch.yml",
     "README.en.md"
   ],

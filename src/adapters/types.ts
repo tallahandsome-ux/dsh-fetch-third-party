@@ -21,6 +21,17 @@ export interface FetchAdapterContext {
   proxy?: string
 }
 
+/**
+ * Append a path to a base URL, preserving any path prefix on the base.
+ * Unlike `new URL(path, base)`, a leading `/` in `path` does NOT replace the
+ * base's own path — so `https://host/v1` + `/extract` → `https://host/v1/extract`.
+ * Every adapter must join with this so a user-configured endpoint that carries
+ * a path prefix (self-hosted service behind a reverse proxy) keeps it.
+ */
+export function joinURL(base: string, path: string): string {
+  return base.replace(/\/+$/, '') + path
+}
+
 /** Cached undici proxy agents, keyed by proxy URL (connection pooling). */
 const proxyAgents = new Map<string, ProxyAgent>()
 

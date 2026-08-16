@@ -62,6 +62,7 @@ export class FetchCache {
   set(url: string, value: WebFetchResult): void {
     const key = normalizeURL(url)
     if (key === undefined) return
+    // 0 = no cap (unlimited); entries are only evicted under a positive cap.
     const limit = this.maxEntries()
     if (limit > 0 && this.map.size >= limit) {
       const oldest = this.map.keys().next().value

@@ -59,9 +59,17 @@ export function isPrivateOrReserved(ip: string): boolean {
     const lower = ip.toLowerCase()
     if (lower === '::' || lower === '::1') return true // unspecified / loopback
     if (lower.startsWith('::ffff:')) return isPrivateOrReserved(lower.slice(7)) // IPv4-mapped
-    if (lower.startsWith('fe80:')) return true // link-local
-    if (lower.startsWith('fc') || lower.startsWith('fd')) return true // ULA fc00::/7
-    if (lower.startsWith('ff')) return true // multicast
+    // Deprecated IPv4-compatible form (::a.b.c.d): the tail embeds an IPv4.
+    if (lower.startsWith('::') && lower.includes('.')) return isPrivateOrReserved(lower.slice(2))
+    if (lower.startsWith('ff')) return true // multicast ff00::/8
+    const first = lower.split(':')[0]
+    if (first !== undefined && first.length > 0) {
+      const hextet = parseInt(first, 16)
+      if (!Number.isNaN(hextet)) {
+        if (hextet >= 0xfc00 && hextet <= 0xfdff) return true // ULA fc00::/7
+        if (hextet >= 0xfe80 && hextet <= 0xfebf) return true // link-local fe80::/10
+      }
+    }
     if (lower.startsWith('2002:')) {
       // 6to4: the next two hextets encode the IPv4.
       const groups = lower.split(':')

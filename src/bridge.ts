@@ -29,6 +29,9 @@ const BRIDGE_PREFIX = '/api/fetch-third-party'
 /** Loopback peer addresses the bridge accepts (IPv4, IPv6, and mapped forms). */
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
 
+/** Max request body the bridge accepts (guard against runaway local payloads). */
+const MAX_BODY_BYTES = 1024 * 1024
+
 /** The card's view of the section plus the key's credential state. */
 interface ConfigView {
   adapter: string
@@ -109,21 +112,21 @@ async function handleConfig(
 ): Promise<void> {
   if (!loopbackPeer(req)) return sendJson(res, 403, { error: 'loopback-only' })
   if (req.method === 'GET') {
-    return sendJson(res, 200, await viewOf(ctx, config))
+    return sendView(res, ctx, config)
   }
-  if (req.method === 'POST') {
-    const body = await readJson(req) as { field?: unknown; value?: unknown }
-    if (typeof body.field !== 'string' || body.field.length === 0) {
-      return sendJson(res, 400, { error: 'field required' })
-    }
-    try {
-      await ctx.settings.update(NAMESPACE, { [body.field]: body.value })
-    } catch (error) {
-      return sendJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
-    }
-    return sendJson(res, 200, await viewOf(ctx, config))
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+  const body = await readJsonOr400(req, res)
+  if (body === null) return
+  const { field, value } = body as { field?: unknown; value?: unknown }
+  if (typeof field !== 'string' || field.length === 0) {
+    return sendJson(res, 400, { error: 'field required' })
   }
-  return sendJson(res, 405, { error: 'method not allowed' })
+  try {
+    await ctx.settings.update(NAMESPACE, { [field]: value })
+  } catch (error) {
+    return sendJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
+  }
+  return sendView(res, ctx, config)
 }
 
 /** POST `{ value }` writes the key; `{ unset: true }` removes it. The ref is the PRIMARY provider's. */
@@ -135,26 +138,28 @@ async function handleKey(
 ): Promise<void> {
   if (!loopbackPeer(req)) return sendJson(res, 403, { error: 'loopback-only' })
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
-  const body = await readJson(req) as { value?: unknown; unset?: unknown }
+  const body = await readJsonOr400(req, res)
+  if (body === null) return
   const refName = primaryKeyEnv(config())
   // Empty key ref = anonymous provider; there is no credential to write.
   if (refName.length === 0) {
     return sendJson(res, 400, { error: '当前服务商无需 API Key（匿名）' })
   }
   const ref = credentialRef(refName)
+  const { value, unset } = body as { value?: unknown; unset?: unknown }
   try {
-    if (body.unset === true) {
+    if (unset === true) {
       await ctx.credentials.unset(ref)
     } else {
-      if (typeof body.value !== 'string' || body.value.length === 0) {
+      if (typeof value !== 'string' || value.length === 0) {
         return sendJson(res, 400, { error: 'value required' })
       }
-      await ctx.credentials.set(ref, body.value)
+      await ctx.credentials.set(ref, value)
     }
   } catch (error) {
     return sendJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
   }
-  return sendJson(res, 200, await viewOf(ctx, config))
+  return sendView(res, ctx, config)
 }
 
 /** POST `{ url? }` runs a real fetch through the routing (consumes provider API quota). */
@@ -166,12 +171,18 @@ async function handleTest(
 ): Promise<void> {
   if (!loopbackPeer(req)) return sendJson(res, 403, { error: 'loopback-only' })
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
-  const body = await readJson(req) as { url?: unknown }
-  const url = typeof body.url === 'string' && body.url.length > 0 ? body.url : 'https://example.com'
+  const body = await readJsonOr400(req, res)
+  if (body === null) return
+  const { url: raw } = body as { url?: unknown }
+  const url = typeof raw === 'string' && raw.length > 0 ? raw : 'https://example.com'
   if (!isHttpUrl(url)) {
     return sendJson(res, 400, { error: 'invalid test URL' })
   }
-  return sendJson(res, 200, await test(url))
+  try {
+    return sendJson(res, 200, await test(url))
+  } catch (error) {
+    return sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+  }
 }
 
 /** GET the live fallback chain order + cooldown state. */
@@ -194,13 +205,14 @@ async function handleCustom(
 ): Promise<void> {
   if (!loopbackPeer(req)) return sendJson(res, 403, { error: 'loopback-only' })
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
-  const body = await readJson(req) as Partial<CustomOp> & { op?: unknown }
+  const body = await readJsonOr400(req, res)
+  if (body === null) return
   const current = config().customProviders
   let next: CustomProvider[]
   try {
-    switch (body.op) {
+    switch ((body as Partial<CustomOp> & { op?: unknown }).op) {
       case 'add': {
-        const entry = validateCustomEntry(body.entry)
+        const entry = validateCustomEntry((body as CustomOp & { op: 'add' }).entry)
         if (current.some(provider => provider.name === entry.name)) {
           throw new Error(`自定义服务商名称 "${entry.name}" 已存在`)
         }
@@ -208,7 +220,7 @@ async function handleCustom(
         break
       }
       case 'update': {
-        const entry = validateCustomEntry(body.entry)
+        const entry = validateCustomEntry((body as CustomOp & { op: 'update' }).entry)
         if (!current.some(provider => provider.name === entry.name)) {
           throw new Error(`自定义服务商 "${entry.name}" 不存在`)
         }
@@ -216,14 +228,16 @@ async function handleCustom(
         break
       }
       case 'remove': {
-        if (typeof body.name !== 'string') throw new Error('name required for remove')
-        next = current.filter(provider => provider.name !== body.name)
+        const { name } = body as CustomOp & { op: 'remove' }
+        if (typeof name !== 'string') throw new Error('name required for remove')
+        next = current.filter(provider => provider.name !== name)
         break
       }
       case 'replace': {
-        if (!Array.isArray(body.entries)) throw new Error('entries required for replace')
+        const { entries } = body as CustomOp & { op: 'replace' }
+        if (!Array.isArray(entries)) throw new Error('entries required for replace')
         const seen = new Set<string>()
-        next = body.entries.map((entry, index) => {
+        next = entries.map((entry, index) => {
           const valid = validateCustomEntry(entry)
           if (seen.has(valid.name)) throw new Error(`自定义服务商名称 "${valid.name}" 重复（第 ${index + 1} 项）`)
           seen.add(valid.name)
@@ -242,7 +256,7 @@ async function handleCustom(
   } catch (error) {
     return sendJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
   }
-  return sendJson(res, 200, await viewOf(ctx, config))
+  return sendView(res, ctx, config)
 }
 
 /** Compose the card's view: section values plus the key's credential state. */
@@ -327,11 +341,20 @@ function loopbackPeer(req: IncomingMessage): boolean {
   return LOOPBACK.has(req.socket.remoteAddress ?? '')
 }
 
-/** Drain the request body and parse JSON. */
+/** Drain the request body and parse JSON; rejects on oversized or malformed input. */
 function readJson(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
-    req.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+    let size = 0
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > MAX_BODY_BYTES) {
+        req.destroy()
+        reject(new Error('request body too large'))
+        return
+      }
+      chunks.push(chunk)
+    })
     req.on('end', () => {
       const raw = Buffer.concat(chunks).toString('utf8')
       if (raw.length === 0) return resolve({})
@@ -339,6 +362,25 @@ function readJson(req: IncomingMessage): Promise<unknown> {
     })
     req.on('error', reject)
   })
+}
+
+/** Compose a 200 view response, or 500 when a settings/credentials seam call fails. */
+async function sendView(res: ServerResponse, ctx: Context, config: () => Config): Promise<void> {
+  try {
+    return sendJson(res, 200, await viewOf(ctx, config))
+  } catch (error) {
+    return sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+  }
+}
+
+/** Parse the request body, answering 400 when it is missing, malformed, or too large. */
+async function readJsonOr400(req: IncomingMessage, res: ServerResponse): Promise<unknown | null> {
+  try {
+    return await readJson(req)
+  } catch {
+    sendJson(res, 400, { error: 'invalid JSON body' })
+    return null
+  }
 }
 
 /** Write one JSON response. */

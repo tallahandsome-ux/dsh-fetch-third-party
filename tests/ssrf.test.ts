@@ -37,6 +37,13 @@ describe('isPrivateOrReserved', () => {
     // 6to4 embedding 127.0.0.1 → 2002:7f00:0001::
     expect(isPrivateOrReserved('2002:7f00:0001::1')).toBe(true)
     expect(isPrivateOrReserved('2002:0808:0808::1')).toBe(false)
+    // The full link-local range fe80::/10, not just fe80: (M2).
+    expect(isPrivateOrReserved('febf::1')).toBe(true)
+    expect(isPrivateOrReserved('febf:1::1')).toBe(true)
+    // Deprecated IPv4-compatible forms embed a v4 address (M2).
+    expect(isPrivateOrReserved('::127.0.0.1')).toBe(true)
+    expect(isPrivateOrReserved('::10.0.0.1')).toBe(true)
+    expect(isPrivateOrReserved('::8.8.8.8')).toBe(false)
   })
 
   it('is conservative for non-IP input', () => {

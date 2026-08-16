@@ -9,7 +9,7 @@
 
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { WebFetchResult } from '@deepseek-ai/dsh-web'
-import { dispatcherFor, type FetchAdapter, type FetchAdapterContext } from './types.ts'
+import { dispatcherFor, joinURL, type FetchAdapter, type FetchAdapterContext } from './types.ts'
 
 /** Body size cap applied to non-2xx error bodies (they are diagnostics, not pages). */
 const ERROR_BODY_CAP = 100_000
@@ -33,7 +33,7 @@ export const firecrawlAdapter: FetchAdapter = {
   id: 'firecrawl',
   label: 'Firecrawl',
   async fetch(ctx: FetchAdapterContext, request, signal): Promise<WebFetchResult> {
-    const endpoint = new URL(SCRAPE_PATH, ctx.baseURL)
+    const endpoint = joinURL(ctx.baseURL, SCRAPE_PATH)
     const dispatcher = dispatcherFor(ctx.proxy)
     let response: Response
     try {

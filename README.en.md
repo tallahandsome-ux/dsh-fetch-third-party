@@ -122,8 +122,6 @@ http://127.0.0.1:27822
 
 ### Fetch cache and target safety
 
-### Fetch cache and target safety
-
 - **Fetch cache** (card level-2): toggle + TTL (seconds). Repeated fetches of the same URL within the TTL are served from memory — no third-party quota, no budget. Enabled by default, 600s TTL.
 - **Reject private targets** (card level-2): refuse loopback / private / reserved targets before forwarding, preventing the model from reaching internal resources. Enabled by default.
 - **Tool name** (config `toolName`, not in the card): `web_fetch_url` (default) / `web_fetch` / `auto`. Choosing the official name `web_fetch` auto-falls-back to `web_fetch_url` if it is taken.

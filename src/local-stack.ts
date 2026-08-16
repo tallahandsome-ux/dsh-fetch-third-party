@@ -39,7 +39,11 @@ const CONTAINER_COOLDOWN_MS = 60_000
 /** Whether a URL points at the loopback interface. */
 export function isLoopbackURL(url: string): boolean {
   try {
-    const host = new URL(url).hostname.toLowerCase()
+    // WHATWG URL keeps IPv6 brackets in hostname ('[::1]'); strip them so the
+    // bracketed form counts as loopback too (a loopback custom endpoint with a
+    // bracketed IPv6 would otherwise get the proxy applied and break).
+    let host = new URL(url).hostname.toLowerCase()
+    if (host.startsWith('[') && host.endsWith(']')) host = host.slice(1, -1)
     return host === '127.0.0.1' || host === 'localhost' || host === '::1'
   } catch {
     return false
@@ -99,9 +103,16 @@ export class LocalStackManager {
 
   constructor(private readonly config: () => Config) {}
 
-  /** Whether the current routing references a loopback custom provider. */
+  /**
+   * Whether the current routing references a loopback custom provider.
+   * Mirrors provider.ts `effectiveChain`: an explicit fallbackChain wins over
+   * the adapter+fallback pair, so a loopback provider placed ONLY in the chain
+   * still triggers the stack (previously it silently never started).
+   */
   needsLocal(config: Config = this.config()): boolean {
-    const names = [config.adapter, config.fallback].filter((name) => name.length > 0)
+    const names = config.fallbackChain.length > 0
+      ? config.fallbackChain
+      : [config.adapter, config.fallback].filter((name) => name.length > 0)
     return names.some((name) => {
       const entry = config.customProviders.find((provider) => provider.name === name)
       return entry !== undefined && isLoopbackURL(entry.baseURL)

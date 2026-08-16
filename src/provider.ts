@@ -1,8 +1,9 @@
 /**
  * The `third-party` WebFetchProvider: routes one URL to the configured
- * primary provider (built-in id or custom name) with a fallback (default:
- * Jina Reader as the keyless safety net), enforcing the per-session budget
- * and resolving API keys from the credentials domain per request.
+ * primary provider (built-in id or custom name) with an optional fallback
+ * (the user picks it in the card — e.g. Jina Reader, keyless, as the safety
+ * net), enforcing the per-session budget and resolving API keys from the
+ * credentials domain per request.
  * @module dsh-fetch-third-party/provider
  */
 
@@ -19,6 +20,7 @@ import { customAdapter } from './adapters/custom.ts'
 import type { FetchBudget } from './budget.ts'
 import type { FetchCache } from './cache.ts'
 import { classifyFailure, FallbackRouter, type ChainRow } from './fallback.ts'
+import { isLoopbackURL } from './local-stack.ts'
 import { validateTargetURL } from './ssrf.ts'
 import { resolveProvider, type Config } from './settings.ts'
 
@@ -39,6 +41,26 @@ export const WEB_FETCH_BUDGET_EXHAUSTED = 'WEB_FETCH_BUDGET_EXHAUSTED'
 
 /** HTTP statuses that count as a failed primary attempt and trigger fallback. */
 const ERROR_STATUS_THRESHOLD = 400
+
+/** Max characters of a fetched text body passed through to the model (contract v1: 100k). */
+export const MAX_CONTENT_CHARS = 100_000
+
+/**
+ * Cap a fetch result's text body at {@link MAX_CONTENT_CHARS}, marking it
+ * truncated. Adapters already cap non-2xx error bodies (diagnostics); this
+ * covers success bodies so an oversized page cannot flood the model context
+ * (the contract's "100,000 characters" bound was previously only documented).
+ */
+export function capContent(result: WebFetchResult): WebFetchResult {
+  if (result.body.content.length <= MAX_CONTENT_CHARS) return result
+  const { kind } = result.body
+  const content = result.body.content.slice(0, MAX_CONTENT_CHARS)
+  return {
+    ...result,
+    body: kind === 'html' ? { kind, content } : { kind, content },
+    truncated: true,
+  }
+}
 
 /** Outcome of one fetch attempt including which provider NAME served it. */
 export interface FetchOutcome {
@@ -102,13 +124,14 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
       )
     }
     const outcome = await this.attemptWithChain(config, request, signal, true)
+    const result = capContent(outcome.result)
     // Only cache successful, non-empty results (error pages are transient).
     if (config.cacheEnabled
-      && outcome.result.statusCode < ERROR_STATUS_THRESHOLD
-      && outcome.result.body.content.length > 0) {
-      this.cache.set(request.url, outcome.result)
+      && result.statusCode < ERROR_STATUS_THRESHOLD
+      && result.body.content.length > 0) {
+      this.cache.set(request.url, result)
     }
-    return outcome.result
+    return result
   }
 
   /**
@@ -124,11 +147,12 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     const started = Date.now()
     try {
       const { result, servedBy } = await this.attemptWithChain(config, request, undefined, false)
+      const capped = capContent(result)
       return {
         ok: result.statusCode < ERROR_STATUS_THRESHOLD,
         servedBy,
         statusCode: result.statusCode,
-        contentLength: result.body.content.length,
+        contentLength: capped.body.content.length,
         durationMs: Date.now() - started,
       }
     } catch (error) {
@@ -232,8 +256,12 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
       baseURL: resolved.baseURL,
       apiKey,
       // The proxy applies only when enabled AND a value is set; the address
-      // is kept in the section even while disabled.
-      proxy: config.proxyEnabled && config.proxy.length > 0 ? config.proxy : undefined,
+      // is kept in the section even while disabled. Loopback endpoints
+      // (self-hosted wrappers) always connect directly — a proxy cannot
+      // reach 127.0.0.1 and would break the local stack.
+      proxy: config.proxyEnabled && config.proxy.length > 0 && !isLoopbackURL(resolved.baseURL)
+        ? config.proxy
+        : undefined,
     }
   }
 

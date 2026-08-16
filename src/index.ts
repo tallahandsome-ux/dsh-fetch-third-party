@@ -72,7 +72,8 @@ export function apply(ctx: Context, config: Config = DEFAULT_CONFIG): void {
 /** Explicit defaults for a row without a config block. */
 const DEFAULT_CONFIG: Config = {
   adapter: DEFAULT_ADAPTER,
-  // Jina Reader as the keyless safety net whenever the primary fails.
+  // No fallback by default: the user picks their own in the card (e.g. Jina
+  // Reader, keyless, as the safety net).
   fallback: DEFAULT_FALLBACK,
   // Empty = adapter stock default (firecrawl → api.firecrawl.dev).
   baseURL: '',
