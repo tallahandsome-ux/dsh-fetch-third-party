@@ -33,6 +33,8 @@ export const DEFAULT_MAX_FETCHES = 10
 export const DEFAULT_CACHE_TTL_SECONDS = 600
 /** Default cache entry cap before LRU eviction. */
 export const DEFAULT_CACHE_MAX_ENTRIES = 200
+/** Default model-facing tool name. */
+export const DEFAULT_TOOL_NAME = 'web_fetch_url'
 
 /**
  * Standard credential reference per adapter. The section's `apiKeyEnv` is
@@ -170,6 +172,8 @@ export interface Config {
   cacheMaxEntries: number
   /** Reject model-requested targets on private/reserved addresses (defense-in-depth). */
   rejectPrivateTargets: boolean
+  /** Tool name preference: 'web_fetch_url' | 'web_fetch' | 'auto'. */
+  toolName: string
 }
 
 /**
@@ -192,4 +196,5 @@ export const Config: z<Config> = z.object({
   cacheTtlSeconds: z.natural().default(DEFAULT_CACHE_TTL_SECONDS),
   cacheMaxEntries: z.natural().default(DEFAULT_CACHE_MAX_ENTRIES),
   rejectPrivateTargets: z.boolean().default(true),
+  toolName: z.string().default(DEFAULT_TOOL_NAME),
 })

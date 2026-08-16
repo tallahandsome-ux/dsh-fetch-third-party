@@ -1,23 +1,65 @@
 /**
- * The self-contained model-facing tool `web_fetch_url` (design 方案 B):
- * works in any session without touching the agent preset, unlike the official
- * `web_fetch` tool which is preset-gated and defaults to disabled.
+ * The self-contained model-facing web fetch tool (design 方案 B): works in any
+ * session without touching the agent preset, unlike the official `web_fetch`
+ * tool which is preset-gated and defaults to disabled.
+ *
+ * The tool name is configurable (`toolName`: `web_fetch_url` | `web_fetch` |
+ * `auto`) so a future official `web_fetch` integration can coexist without a
+ * registration clash: the registry is queried before registering, and a taken
+ * name falls back to `web_fetch_url`.
  * @module dsh-fetch-third-party/tool
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
+import type { Config } from './settings.ts'
+
+/** Tool-name preference accepted by the section. */
+export type ToolNamePreference = 'web_fetch_url' | 'web_fetch' | 'auto'
+
+/** Result of resolving the tool name against the registry. */
+export interface ToolNameResolution {
+  /** The final tool name to register under. */
+  name: string
+  /** True when the preference could not be honored and we fell back. */
+  fellBack: boolean
+}
+
+/**
+ * Resolve the final tool name. Pure (inject the registry probe) so it is
+ * unit-testable.
+ * @param preference - the section's `toolName` value.
+ * @param taken - probe: whether a name is already registered.
+ * @returns the name to use and whether a fallback happened.
+ */
+export function resolveToolName(
+  preference: ToolNamePreference,
+  taken: (name: string) => boolean,
+): ToolNameResolution {
+  if (preference === 'web_fetch_url') return { name: 'web_fetch_url', fellBack: false }
+  const wantsOfficial = preference === 'web_fetch' || preference === 'auto'
+  if (wantsOfficial && !taken('web_fetch')) return { name: 'web_fetch', fellBack: false }
+  return { name: 'web_fetch_url', fellBack: wantsOfficial }
+}
 
 /** Register the tool and its conservative-use guidance. */
-export function applyWebFetchUrlTool(ctx: Context): void {
+export function applyWebFetchUrlTool(ctx: Context, config: () => Config): void {
+  const { name, fellBack } = resolveToolName(
+    config().toolName as ToolNamePreference,
+    (candidate) => ctx.tools.get(candidate) !== undefined,
+  )
+  if (fellBack) {
+    console.warn('[dsh-fetch-third-party] tool name "web_fetch" is already registered; fell back to "' + name + '"')
+  }
+
   ctx.systemPrompt.section({
-    name: 'tool:web_fetch_url',
+    name: 'tool:' + name,
     order: 112,
-    text: 'Use the web_fetch_url tool to retrieve the full content of one specific HTTP(S) URL when a search result snippet is not enough to answer. Fetch one URL at a time; do not fetch repeatedly when the information is already sufficient.',
+    text: 'Use the ' + name + ' tool to retrieve the full content of one specific HTTP(S) URL when a search result snippet is not enough to answer. Fetch one URL at a time; do not fetch repeatedly when the information is already sufficient.',
   })
 
   ctx.tools.register(defineTool({
-    name: 'web_fetch_url',
+    name,
     description: 'Fetch the full content of one specific HTTP(S) URL through a user-configured third-party fetch service and return it as text.',
     parameters: {
       url: { type: 'string', required: true, description: 'The HTTP(S) URL to fetch.' },
@@ -34,7 +76,7 @@ export function applyWebFetchUrlTool(ctx: Context): void {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `URL: ${value.url}\nStatus: ${value.statusCode}\n\n${value.content}`,
+        text: 'URL: ' + value.url + '\nStatus: ' + value.statusCode + '\n\n' + value.content,
       }],
     },
     isConcurrencySafe: () => true,

@@ -16,7 +16,7 @@ import { ThirdPartyFetchProvider } from './provider.ts'
 import {
   Config, DEFAULT_ADAPTER, DEFAULT_BASE_URL, DEFAULT_CACHE_MAX_ENTRIES,
   DEFAULT_CACHE_TTL_SECONDS, DEFAULT_FALLBACK,
-  DEFAULT_MAX_FETCHES, NAMESPACE,
+  DEFAULT_MAX_FETCHES, DEFAULT_TOOL_NAME, NAMESPACE,
 } from './settings.ts'
 import { applyWebFetchUrlTool } from './tool.ts'
 
@@ -61,7 +61,7 @@ export function apply(ctx: Context, config: Config = DEFAULT_CONFIG): void {
   )
   const provider = new ThirdPartyFetchProvider(ctx, current, budget, cache)
   ctx.web.registerFetchProvider(provider)
-  applyWebFetchUrlTool(ctx)
+  applyWebFetchUrlTool(ctx, current)
   mountFetchBridge(ctx, current, (url) => provider.testFetch(url))
 
   // Kill the wrapper child when the plugin unloads (dsh web shuts down).
@@ -87,4 +87,5 @@ const DEFAULT_CONFIG: Config = {
   cacheTtlSeconds: DEFAULT_CACHE_TTL_SECONDS,
   cacheMaxEntries: DEFAULT_CACHE_MAX_ENTRIES,
   rejectPrivateTargets: true,
+  toolName: DEFAULT_TOOL_NAME,
 }
