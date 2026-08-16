@@ -1,18 +1,34 @@
 # dsh-fetch-third-party
 
-**安全的第三方网页抓取插件**（DSH / DeepSeek Harness）。
+[English](README.en.md) | 中文
 
-抓取委托给**用户自选/自建的第三方服务**（Tavily / Jina Reader / Firecrawl / 自定义契约服务），本机不直连目标网址（无 SSRF 面）；API key 只进托管保险箱（0600）；会话级抓取预算兜底；可自动管理本地 Crawl4AI 抓取栈（含实时 watchdog）。
+**安全的第三方网页抓取插件**（DSH / DeepSeek Harness）——让 AI 在「搜索摘要不够」时，能自主抓取网页全文来回答问题。
 
-## 特性
+## 简介
 
-- **快递员模式**：本机零出站到目标 URL，抓取由第三方服务完成
-- **多服务商**：Tavily / Jina Reader / Firecrawl / 自定义服务（契约 v1，可多实例并存）
-- **主 + 兜底路由**：主服务商失败自动回退到兜底服务商
-- **API key 单一写入点**：托管保险箱（0600），卡片只显示“已配置/未配置”
-- **会话预算**：默认每会话 10 次，超限拒绝并给出明确提示
-- **GUI 设置卡片**：测试连接 / 本地代理 / 自定义服务商管理 / 清除 key
-- **自建 Crawl4AI 栈自动管理**：默认/兜底服务商为 loopback 自定义服务商时自动拉起容器与包装进程，watchdog 自愈
+本插件为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（dsh）提供**安全的网页抓取能力**：抓取委托给**用户自选/自建的第三方服务**（Tavily / Jina Reader / Firecrawl / 自定义契约服务），本机从不直接连接目标网址，因此**没有 SSRF 攻击面**。
+
+核心能力：
+
+- **自主抓取**：模型先用官方 `web_search` 搜索，当摘要不足以回答问题时，会自动调用 `web_fetch_url` 抓取目标网页全文，无需用户提示。
+- **快递员模式**：目标网址只经用户配置的第三方服务抓取，本机零出站到任意 URL（无 SSRF 面）。
+- **多服务商 + 路由**：Tavily / Jina Reader / Firecrawl / 自定义服务（契约 v1，可多实例并存），主服务商失败自动回退到兜底服务商。
+- **API key 单一写入点**：key 只存托管保险箱（0600），卡片只显示“已配置/未配置”，永不回显。
+- **会话级预算**：默认每会话 10 次，超限拒绝并给出明确提示。
+- **GUI 设置卡片**：测试连接 / 本地代理 / 自定义服务商管理 / 清除 key。
+- **自建 Crawl4AI 栈自动管理**：当默认或兜底服务商是 loopback 地址的自定义服务商时，插件自动拉起容器与包装进程，并带实时 watchdog 自愈。
+
+## 工作原理
+
+```
+用户提问
+  → 模型调用 web_search（官方搜索）
+    → 摘要足够？ → 是 → 直接回答
+    → 否 → 模型自主调用 web_fetch_url({ url })
+      → ctx.web.fetch → third-party provider
+        → 第三方服务（Tavily / Jina / Firecrawl / 自定义）抓取目标网页
+        → 返回正文 → 模型基于全文回答
+```
 
 ## 目录结构
 
