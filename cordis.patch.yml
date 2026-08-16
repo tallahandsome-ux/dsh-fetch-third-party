@@ -1,0 +1,9 @@
+# dsh-fetch-third-party bundle patch.
+#
+# One row, both halves: the node half registers the provider, the settings
+# section, the web_fetch_url tool, and the settings bridge; the browser half
+# (declared by the package's `dsh.client` manifest, served from lib/client.js)
+# mounts the settings card.
+- insert:
+    - id: web-fetch-third-party
+      name: 'dsh-fetch-third-party'

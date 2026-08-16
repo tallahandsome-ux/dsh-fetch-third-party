@@ -1,0 +1,69 @@
+{
+  "name": "dsh-fetch-third-party",
+  "version": "1.0.0",
+  "description": "Safe third-party web fetch for dsh: delegates page retrieval to a user-configured third-party service (Tavily / Jina / Firecrawl / custom crawler via contract v1) so the local machine never connects to arbitrary URLs (no SSRF surface). API key lives only in the managed credentials store; per-session fetch budget caps usage; a bundled Crawl4AI stack can be auto-managed.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "prepare": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "undici": "^6.28.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-credentials": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-settings": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-web": "^0.1.0-rc.5",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "tsdown": "0.22.2",
+    "@types/node": "^22.20.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "^18.3.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-credentials": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-settings": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-web": "^0.1.0-rc.5",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "vitest": "^3.2.0"
+  }
+}
