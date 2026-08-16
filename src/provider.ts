@@ -205,7 +205,7 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     }
     const detail = tried.size > 0
       ? `尝试了 ${[...tried].join(' → ')}：${lastError instanceof Error ? lastError.message : '全部失败'}`
-      : '回退链为空或全部不可用'
+      : '回退链为空（请检查 默认服务商 / 兜底服务商 / 回退链 配置）'
     throw new WebError(`抓取失败（${detail}）`, 'WEB_PROVIDER_ERROR', lastError !== null && lastError !== undefined ? { cause: lastError } : undefined)
   }
 

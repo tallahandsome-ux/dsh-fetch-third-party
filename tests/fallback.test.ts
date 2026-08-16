@@ -51,6 +51,16 @@ describe('FallbackRouter', () => {
     expect(r.next(new Set(['a', 'b']))).toBeUndefined()
   })
 
+  it('falls through to a cooled provider when every provider is cooling', () => {
+    const r = new FallbackRouter(['a', 'b'], policy({ quotaSeconds: 3600 }))
+    r.recordFailure('a', 'quota')
+    r.recordFailure('b', 'quota')
+    // both cooling, but the chain stays usable: try the least-cooled (base order first)
+    expect(r.next(new Set())).toBe('a')
+    expect(r.next(new Set(['a']))).toBe('b')
+    expect(r.next(new Set(['a', 'b']))).toBeUndefined()
+  })
+
   it('quota cooldown uses the quota duration', () => {
     const r = new FallbackRouter(['a'], policy({ quotaSeconds: 120 }))
     r.recordFailure('a', 'quota')

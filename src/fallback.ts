@@ -64,7 +64,12 @@ export class FallbackRouter {
    */
   next(tried: ReadonlySet<string>): string | undefined {
     this.reorder(Date.now())
-    return this.order.find((name) => this.remaining(name) === 0 && !tried.has(name))
+    const ready = this.order.find((name) => this.remaining(name) === 0 && !tried.has(name))
+    if (ready !== undefined) return ready
+    // All ready providers are cooling or tried: fall through to the least-cooled
+    // untried one so the chain stays usable instead of hard-blocking (cooldown is
+    // a preference, not a hard gate — mirroring modsearch's move-to-back model).
+    return this.order.find((name) => !tried.has(name))
   }
 
   /** Mark a failure; the provider cools down and drops to the back of rotation. */
