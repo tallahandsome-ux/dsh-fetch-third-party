@@ -20,7 +20,7 @@
 fetch/
 ├── package.json        # dsh.bundle + dsh.client 清单
 ├── cordis.patch.yml    # 补丁层
-├── docs/               # 设计 / 契约 / 调研文档
+├── docs/               # 契约 v1 / 自建爬虫调研
 ├── scripts/            # 验证脚本 + 契约 v1 包装 + 启动脚本
 ├── tests/              # vitest 单测
 └── src/                # 源码（Host + Client 两半区）
@@ -160,6 +160,7 @@ pnpm test           # vitest（settings 解析 / budget 预算 / B1 回归）
 
 - **本插件不打包/不内置任何第三方爬虫引擎**。Crawl4AI、Jina Reader 等由用户按需部署，插件通过契约 v1 或复用内置适配器对接，目标网址仅经用户配置的第三方服务抓取。
 - **API key 只存托管保险箱**，不进代码 / 配置 / 文档；插件每次请求从保险箱现取，卡片永不回显。
+- **key 与安装方式无关**：无论从 git / 本地 / npm 哪种方式安装，插件都只从本机保险箱（`%USERPROFILE%\.dsh\.credentials.yaml`，0600）按引用名读取 key——仓库、代码、文档中不含任何密钥，从 GitHub 克隆也不会携带或泄露任何 key。
 - 本机**唯一出站面**是用户配置的第三方端点（“快递员模式”的代价，信任边界由用户决定）。
 - 自建 Crawl4AI 自身带 SSRF 防护，与本插件“本机不直连目标”的安全前提互补。
 

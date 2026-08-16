@@ -52,7 +52,7 @@
 - **注意**：年轻项目、维护者少，生产前需实测目标站点
 
 ### 🥉 Jina Reader 自建（备选 B，最省事）
-- 已调研过（`docs/p2-vendor-research.md` §3）：`ghcr.io/jina-ai/reader:oss` Docker，**无限制、无 rate limit**
+- 已调研过：`ghcr.io/jina-ai/reader:oss` Docker，**无限制、无 rate limit**
 - **接入我们的方式**：卡片"自定义服务商"类型选 **jina** + 地址填 `http://127.0.0.1:3000`——**复用内置 jina 适配器，无需写任何包装代码**（这是 P4 适配条件里"复用内置适配器"路径的现成例子）
 - 局限：仅逐 URL、无整站爬；只读网页/PDF/Office
 

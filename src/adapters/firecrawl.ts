@@ -1,7 +1,7 @@
 /**
  * Firecrawl adapter: POST `/v2/scrape` → clean markdown.
  *
- * Reference: Firecrawl official skill / REST docs (docs/firecrawl-reference.md).
+ * Reference: Firecrawl official REST docs (https://docs.firecrawl.dev).
  * Unlike Jina, Firecrawl's keyless free tier only covers OFFICIAL clients
  * (MCP/CLI/SDK), so raw REST /scrape requires an API key.
  * @module dsh-fetch-third-party/adapters/firecrawl
