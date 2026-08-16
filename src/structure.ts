@@ -27,18 +27,27 @@ const WORDS_PER_MINUTE = 200
 const HEADING_RE = /^(#{1,3})\s+(.+)$/gm
 const LINK_RE = /\[[^\]]*\]\(([^)]+)\)/g
 
+/** Strip one leading blockquote marker so `> ## H` counts as a heading. */
+function stripBlockquote(line: string): string {
+  return line.replace(/^\s*>\s?/, '')
+}
+
 /** Extract a structured outline from raw fetched content. */
 export function structureContent(content: string): StructuredContent {
   const headings: string[] = []
-  let match: RegExpExecArray | null
-  HEADING_RE.lastIndex = 0
-  while ((match = HEADING_RE.exec(content)) !== null && headings.length < MAX_HEADINGS) {
-    const heading = match[2].trim()
-    if (heading.length > 0) headings.push(heading)
+  for (const rawLine of content.split(/\r?\n/)) {
+    if (headings.length >= MAX_HEADINGS) break
+    const line = stripBlockquote(rawLine)
+    const heading = line.match(/^#{1,3}\s+(.+)$/)
+    if (heading !== null) {
+      const text = heading[1].trim()
+      if (text.length > 0) headings.push(text)
+    }
   }
 
   const links: string[] = []
   const seen = new Set<string>()
+  let match: RegExpExecArray | null
   LINK_RE.lastIndex = 0
   while ((match = LINK_RE.exec(content)) !== null) {
     const url = match[1].trim()
@@ -49,7 +58,7 @@ export function structureContent(content: string): StructuredContent {
     }
   }
 
-  const lines = content.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0)
+  const lines = content.split(/\r?\n/).map((line) => stripBlockquote(line).trim()).filter((line) => line.length > 0)
   let title: string | undefined
   for (const line of lines) {
     const h1 = line.match(/^#\s+(.+)$/)

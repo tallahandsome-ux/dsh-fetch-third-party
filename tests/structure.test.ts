@@ -16,6 +16,11 @@ describe('structureContent', () => {
     expect(structureContent(md).headings).toEqual(['Two', 'Three', 'One'])
   })
 
+  it('treats blockquoted headings as headings', () => {
+    const md = '> ## Quoted Section'
+    expect(structureContent(md).headings).toEqual(['Quoted Section'])
+  })
+
   it('extracts and dedups http(s) links only', () => {
     const md = '[a](https://a.com/x) [b](http://b.com) [c](https://a.com/x) [d](mailto:x@y.com) [e](relative)'
     const links = structureContent(md).links
