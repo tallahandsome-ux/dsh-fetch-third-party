@@ -36,17 +36,39 @@ fetch/
 dsh plugin --profile web add https://github.com/tallahandsome-ux/dsh-fetch-third-party.git
 ```
 
+> **pnpm v11 首次安装提示**：pnpm v11 默认拦截 git 依赖的构建脚本，首次执行可能报 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`。报错信息会给出需要放行的 key，把它加入 web profile 的 `pnpm-workspace.yaml` 后重新执行即可，例如：
+>
+> ```yaml
+> # %USERPROFILE%\.dsh\profiles\web\pnpm-workspace.yaml
+> allowBuilds:
+>   "dsh-fetch-third-party@git+https://github.com/tallahandsome-ux/dsh-fetch-third-party.git#<commit>": true
+> ```
+
 安装完成后**重启 `dsh web`**；在 设置 → 插件 → 插件配置 中出现「网页抓取（第三方）」卡片即安装成功。
 
 ### 方式二：本地构建后安装
+
+适用于已有本地副本（如 `git clone` 下来自行修改）的情况。
+
+**关键：`file:` 后面要填克隆目录的完整绝对路径——也就是能直接看到 `package.json` 的那个文件夹。** 不是仓库名，不是某个文件，也不是父目录。
 
 ```powershell
 git clone https://github.com/tallahandsome-ux/dsh-fetch-third-party.git
 cd dsh-fetch-third-party
 pnpm install
 pnpm build
-dsh plugin --profile web add file:D:\绝对路径\dsh-fetch-third-party
+dsh plugin --profile web add file:D:\你的目录\dsh-fetch-third-party
 ```
+
+把 `D:\你的目录\dsh-fetch-third-party` 换成你机器上**实际克隆到的目录**。例如克隆到了 `D:\plugins` 下，就填：
+
+```powershell
+dsh plugin --profile web add file:D:\plugins\dsh-fetch-third-party
+```
+
+判断标准：该路径下应直接看到 `package.json`、`src/`、`tsdown.config.ts`、`scripts/` 等文件；`Test-Path` 能通过且能看到 `package.json` 即正确。若路径填错（不存在/填成文件），`dsh plugin add` 会失败或装不上。
+
+> 若此前装过旧版本，安装后重启 `dsh web` 生效；万一卡片未刷新，可在 profile 目录（`%USERPROFILE%\.dsh\profiles\web`）执行 `pnpm install` 同步依赖后再重启。
 
 ### 验证安装
 
