@@ -11,6 +11,7 @@ export type FetchCardLocaleKey =
   | 'apiKey' | 'apiKeyHint' | 'apiKeySet' | 'apiKeyUnset'
   | 'baseUrl' | 'baseUrlHint' | 'customEndpointHint'
   | 'maxFetches' | 'maxFetchesHint'
+  | 'cacheSection' | 'cacheEnable' | 'cacheSeconds' | 'cacheHint'
   | 'proxy' | 'proxyHint' | 'proxyEnable' | 'proxyOffHint'
   | 'save' | 'saving' | 'saveSuccess' | 'saveFailed'
   | 'clear'
@@ -39,6 +40,10 @@ export const en: Record<FetchCardLocaleKey, string> = {
   customEndpointHint: 'Endpoint of this custom provider; editing it updates where it fetches.',
   maxFetches: 'Fetch cap per session',
   maxFetchesHint: 'Stop fetching once this many calls happen in one session.',
+  cacheSection: 'Fetch cache',
+  cacheEnable: 'Enable',
+  cacheSeconds: 'seconds TTL',
+  cacheHint: 'Repeated fetches of the same URL within the TTL are served from memory — no third-party quota used, no budget consumed.',
   proxy: 'Local proxy',
   proxyHint: 'Optional HTTP proxy, e.g. http://127.0.0.1:27822, for networks that block the service. Applies per request to every provider; leave blank for direct.',
   proxyEnable: 'Enable',
@@ -89,6 +94,10 @@ export const zh: Record<FetchCardLocaleKey, string> = {
   customEndpointHint: '该自定义服务商的抓取地址；修改后即更新其接口。',
   maxFetches: '每会话抓取上限',
   maxFetchesHint: '单个会话抓取次数达到该值后停止。',
+  cacheSection: '抓取缓存',
+  cacheEnable: '启用',
+  cacheSeconds: '秒有效期',
+  cacheHint: '同一 URL 在有效期内重复抓取直接走内存缓存——不消耗第三方额度，也不消耗会话预算。',
   proxy: '本地代理',
   proxyHint: '可选 HTTP 代理，如 http://127.0.0.1:27822，用于网络被阻断的服务。对所有服务商生效，按请求代理；留空走直连。',
   proxyEnable: '启用',

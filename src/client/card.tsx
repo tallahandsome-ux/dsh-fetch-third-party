@@ -31,6 +31,9 @@ interface ConfigView {
   proxy: string
   proxyEnabled: boolean
   customProviders: CustomProvider[]
+  cacheEnabled: boolean
+  cacheTtlSeconds: number
+  cacheMaxEntries: number
   writable: boolean
   apiKeyConfigured: boolean
   apiKeyWritable: boolean
@@ -492,6 +495,31 @@ export function FetchCard(props: FetchCardProps) {
                 <p style={styles.hint}>{t('maxFetchesHint')}</p>
               </label>
 
+              <label style={styles.field}>
+                <span style={styles.label}>{t('cacheSection')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#555', whiteSpace: 'nowrap' }}>
+                    <input
+                      type="checkbox"
+                      checked={view.cacheEnabled}
+                      disabled={disabled}
+                      onChange={(event) => void saveField('cacheEnabled', event.target.checked)}
+                    />
+                    {t('cacheEnable')}
+                  </label>
+                  <input
+                    style={{ ...styles.input, width: 90 }}
+                    type="number"
+                    min={0}
+                    value={view.cacheTtlSeconds}
+                    disabled={disabled || !view.cacheEnabled}
+                    onChange={(event) => setView(prev => prev ? { ...prev, cacheTtlSeconds: Number(event.target.value) } : prev)}
+                    onBlur={(event) => void saveField('cacheTtlSeconds', Number(event.target.value))}
+                  />
+                  <span style={{ fontSize: 12, color: '#666' }}>{t('cacheSeconds')}</span>
+                </div>
+                <p style={styles.hint}>{t('cacheHint')}</p>
+              </label>
               <label style={styles.field}>
                 <span style={styles.label}>{t('apiKey')}</span>
                 <input

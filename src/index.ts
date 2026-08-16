@@ -9,11 +9,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { installSettingsSection } from '@deepseek-ai/dsh-settings'
 import { FetchBudget } from './budget.ts'
+import { FetchCache } from './cache.ts'
 import { mountFetchBridge } from './bridge.ts'
 import { LocalStackManager } from './local-stack.ts'
 import { ThirdPartyFetchProvider } from './provider.ts'
 import {
-  Config, DEFAULT_ADAPTER, DEFAULT_BASE_URL, DEFAULT_FALLBACK,
+  Config, DEFAULT_ADAPTER, DEFAULT_BASE_URL, DEFAULT_CACHE_MAX_ENTRIES,
+  DEFAULT_CACHE_TTL_SECONDS, DEFAULT_FALLBACK,
   DEFAULT_MAX_FETCHES, NAMESPACE,
 } from './settings.ts'
 import { applyWebFetchUrlTool } from './tool.ts'
@@ -53,7 +55,11 @@ export function apply(ctx: Context, config: Config = DEFAULT_CONFIG): void {
   })
 
   const budget = new FetchBudget(() => current().maxFetchesPerSession)
-  const provider = new ThirdPartyFetchProvider(ctx, current, budget)
+  const cache = new FetchCache(
+    () => current().cacheTtlSeconds * 1000,
+    () => current().cacheMaxEntries,
+  )
+  const provider = new ThirdPartyFetchProvider(ctx, current, budget, cache)
   ctx.web.registerFetchProvider(provider)
   applyWebFetchUrlTool(ctx)
   mountFetchBridge(ctx, current, (url) => provider.testFetch(url))
@@ -77,4 +83,7 @@ const DEFAULT_CONFIG: Config = {
   // Proxy applies when a value is set (the card can toggle it off).
   proxyEnabled: true,
   customProviders: [],
+  cacheEnabled: true,
+  cacheTtlSeconds: DEFAULT_CACHE_TTL_SECONDS,
+  cacheMaxEntries: DEFAULT_CACHE_MAX_ENTRIES,
 }

@@ -17,6 +17,7 @@ import { jinaAdapter } from './adapters/jina.ts'
 import { firecrawlAdapter } from './adapters/firecrawl.ts'
 import { customAdapter } from './adapters/custom.ts'
 import type { FetchBudget } from './budget.ts'
+import type { FetchCache } from './cache.ts'
 import { resolveProvider, type Config } from './settings.ts'
 
 /**
@@ -66,6 +67,7 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     private readonly ctx: Context,
     private readonly config: () => Config,
     private readonly budget: FetchBudget,
+    private readonly cache: FetchCache,
   ) {}
 
   available(): boolean {
@@ -74,6 +76,14 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
 
   async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
     const config = this.config()
+    // A cache hit neither hits the third-party service nor consumes the budget.
+    if (config.cacheEnabled) {
+      const hit = this.cache.get(request.url)
+      if (hit !== undefined) {
+        console.log('[dsh-fetch-third-party] cache hit:', request.url)
+        return hit
+      }
+    }
     const sessionId = this.currentSessionId()
     const acquired = this.budget.tryAcquire(sessionId)
     if (!acquired.ok) {
@@ -82,7 +92,14 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
         WEB_FETCH_BUDGET_EXHAUSTED,
       )
     }
-    return (await this.attemptWithFallback(config, request, signal)).result
+    const outcome = await this.attemptWithFallback(config, request, signal)
+    // Only cache successful, non-empty results (error pages are transient).
+    if (config.cacheEnabled
+      && outcome.result.statusCode < ERROR_STATUS_THRESHOLD
+      && outcome.result.body.content.length > 0) {
+      this.cache.set(request.url, outcome.result)
+    }
+    return outcome.result
   }
 
   /**

@@ -38,6 +38,9 @@ interface ConfigView {
   proxy: string
   proxyEnabled: boolean
   customProviders: CustomProvider[]
+  cacheEnabled: boolean
+  cacheTtlSeconds: number
+  cacheMaxEntries: number
   writable: boolean
   apiKeyConfigured: boolean
   apiKeyWritable: boolean
@@ -243,6 +246,9 @@ async function viewOf(ctx: Context, config: () => Config): Promise<ConfigView> {
     proxy: section.proxy,
     proxyEnabled: section.proxyEnabled,
     customProviders: section.customProviders,
+    cacheEnabled: section.cacheEnabled,
+    cacheTtlSeconds: section.cacheTtlSeconds,
+    cacheMaxEntries: section.cacheMaxEntries,
     writable: true,
     apiKeyConfigured,
     apiKeyWritable,

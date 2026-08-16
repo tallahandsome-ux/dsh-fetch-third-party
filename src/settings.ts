@@ -29,6 +29,10 @@ export const DEFAULT_FALLBACK = ''
 export const DEFAULT_BASE_URL = 'https://api.tavily.com'
 /** Default per-session fetch budget. */
 export const DEFAULT_MAX_FETCHES = 10
+/** Default cache TTL (seconds) for a fetched URL. */
+export const DEFAULT_CACHE_TTL_SECONDS = 600
+/** Default cache entry cap before LRU eviction. */
+export const DEFAULT_CACHE_MAX_ENTRIES = 200
 
 /**
  * Standard credential reference per adapter. The section's `apiKeyEnv` is
@@ -158,6 +162,12 @@ export interface Config {
   proxyEnabled: boolean
   /** User-registered custom provider instances (multi-custom coexistence). */
   customProviders: CustomProvider[]
+  /** Serve repeated fetches of the same URL from an in-process cache. */
+  cacheEnabled: boolean
+  /** Cache TTL in seconds for a fetched URL. */
+  cacheTtlSeconds: number
+  /** Maximum cache entries before LRU eviction. */
+  cacheMaxEntries: number
 }
 
 /**
@@ -176,4 +186,7 @@ export const Config: z<Config> = z.object({
   proxy: z.string().default(''),
   proxyEnabled: z.boolean().default(true),
   customProviders: z.array(CustomProviderSchema).default([]),
+  cacheEnabled: z.boolean().default(true),
+  cacheTtlSeconds: z.natural().default(DEFAULT_CACHE_TTL_SECONDS),
+  cacheMaxEntries: z.natural().default(DEFAULT_CACHE_MAX_ENTRIES),
 })
