@@ -42,6 +42,7 @@ interface ConfigView {
   proxy: string
   proxyEnabled: boolean
   customProviders: CustomProvider[]
+  maxContentChars: number
   cacheEnabled: boolean
   cacheTtlSeconds: number
   cacheMaxEntries: number
@@ -283,6 +284,7 @@ async function viewOf(ctx: Context, config: () => Config): Promise<ConfigView> {
     proxy: section.proxy,
     proxyEnabled: section.proxyEnabled,
     customProviders: section.customProviders,
+    maxContentChars: section.maxContentChars,
     cacheEnabled: section.cacheEnabled,
     cacheTtlSeconds: section.cacheTtlSeconds,
     cacheMaxEntries: section.cacheMaxEntries,

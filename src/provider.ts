@@ -42,19 +42,17 @@ export const WEB_FETCH_BUDGET_EXHAUSTED = 'WEB_FETCH_BUDGET_EXHAUSTED'
 /** HTTP statuses that count as a failed primary attempt and trigger fallback. */
 const ERROR_STATUS_THRESHOLD = 400
 
-/** Max characters of a fetched text body passed through to the model (contract v1: 100k). */
-export const MAX_CONTENT_CHARS = 100_000
-
 /**
- * Cap a fetch result's text body at {@link MAX_CONTENT_CHARS}, marking it
- * truncated. Adapters already cap non-2xx error bodies (diagnostics); this
- * covers success bodies so an oversized page cannot flood the model context
- * (the contract's "100,000 characters" bound was previously only documented).
+ * Cap a fetch result's text body at `maxChars`, marking it truncated.
+ * `maxChars <= 0` means no cap (unlimited). Adapters already cap non-2xx
+ * error bodies (diagnostics); this covers success bodies so an oversized page
+ * cannot flood the model context. The limit is read live from the section
+ * (`maxContentChars`, default 100,000 — the contract v1 bound).
  */
-export function capContent(result: WebFetchResult): WebFetchResult {
-  if (result.body.content.length <= MAX_CONTENT_CHARS) return result
+export function capContent(result: WebFetchResult, maxChars: number): WebFetchResult {
+  if (maxChars <= 0 || result.body.content.length <= maxChars) return result
   const { kind } = result.body
-  const content = result.body.content.slice(0, MAX_CONTENT_CHARS)
+  const content = result.body.content.slice(0, maxChars)
   return {
     ...result,
     body: kind === 'html' ? { kind, content } : { kind, content },
@@ -124,7 +122,7 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
       )
     }
     const outcome = await this.attemptWithChain(config, request, signal, true)
-    const result = capContent(outcome.result)
+    const result = capContent(outcome.result, config.maxContentChars)
     // Only cache successful, non-empty results (error pages are transient).
     if (config.cacheEnabled
       && result.statusCode < ERROR_STATUS_THRESHOLD
@@ -147,7 +145,7 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     const started = Date.now()
     try {
       const { result, servedBy } = await this.attemptWithChain(config, request, undefined, false)
-      const capped = capContent(result)
+      const capped = capContent(result, config.maxContentChars)
       return {
         ok: result.statusCode < ERROR_STATUS_THRESHOLD,
         servedBy,

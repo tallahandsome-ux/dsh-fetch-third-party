@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  BASE_URL_BY_ADAPTER, KEY_ENV_BY_ADAPTER,
+  BASE_URL_BY_ADAPTER, DEFAULT_MAX_CONTENT_CHARS, KEY_ENV_BY_ADAPTER,
   resolveBaseURL, resolveKeyEnv, resolveProvider,
   type Config,
 } from '../src/settings.ts'
@@ -15,9 +15,16 @@ function config(overrides: Partial<Config> = {}): Config {
     proxy: '',
     proxyEnabled: true,
     customProviders: [],
+    maxContentChars: DEFAULT_MAX_CONTENT_CHARS,
     ...overrides,
   }
 }
+
+describe('DEFAULT_MAX_CONTENT_CHARS', () => {
+  it('is the documented contract-v1 bound', () => {
+    expect(DEFAULT_MAX_CONTENT_CHARS).toBe(100_000)
+  })
+})
 
 describe('resolveBaseURL', () => {
   it('falls back to the adapter stock default when baseURL is empty (B1 regression)', () => {

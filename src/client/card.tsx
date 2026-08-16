@@ -28,6 +28,7 @@ interface ConfigView {
   baseURL: string
   apiKeyEnv: string
   maxFetchesPerSession: number
+  maxContentChars: number
   proxy: string
   proxyEnabled: boolean
   customProviders: CustomProvider[]
@@ -521,6 +522,20 @@ export function FetchCard(props: FetchCardProps) {
                   onBlur={(event) => void saveField('maxFetchesPerSession', Number(event.target.value))}
                 />
                 <p style={styles.hint}>{t('maxFetchesHint')}</p>
+              </label>
+
+              <label style={styles.field}>
+                <span style={styles.label}>{t('maxContent')}</span>
+                <input
+                  style={styles.input}
+                  type="number"
+                  min={0}
+                  value={view.maxContentChars}
+                  disabled={disabled}
+                  onChange={(event) => setView(prev => prev ? { ...prev, maxContentChars: Number(event.target.value) } : prev)}
+                  onBlur={(event) => void saveField('maxContentChars', Number(event.target.value))}
+                />
+                <p style={styles.hint}>{t('maxContentHint')}</p>
               </label>
 
               <label style={styles.field}>

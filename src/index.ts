@@ -16,7 +16,7 @@ import { ThirdPartyFetchProvider } from './provider.ts'
 import {
   Config, DEFAULT_ADAPTER, DEFAULT_BASE_URL, DEFAULT_CACHE_MAX_ENTRIES,
   DEFAULT_CACHE_TTL_SECONDS, DEFAULT_FALLBACK,
-  DEFAULT_FAILURE_COOLDOWN_SECONDS, DEFAULT_MAX_FETCHES, DEFAULT_QUOTA_COOLDOWN_SECONDS,
+  DEFAULT_FAILURE_COOLDOWN_SECONDS, DEFAULT_MAX_CONTENT_CHARS, DEFAULT_MAX_FETCHES, DEFAULT_QUOTA_COOLDOWN_SECONDS,
   DEFAULT_TOOL_NAME, NAMESPACE,
 } from './settings.ts'
 import { applyWebFetchUrlTool } from './tool.ts'
@@ -85,6 +85,7 @@ const DEFAULT_CONFIG: Config = {
   // Proxy applies when a value is set (the card can toggle it off).
   proxyEnabled: true,
   customProviders: [],
+  maxContentChars: DEFAULT_MAX_CONTENT_CHARS,
   cacheEnabled: true,
   cacheTtlSeconds: DEFAULT_CACHE_TTL_SECONDS,
   cacheMaxEntries: DEFAULT_CACHE_MAX_ENTRIES,

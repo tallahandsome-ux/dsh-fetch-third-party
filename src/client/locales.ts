@@ -11,6 +11,7 @@ export type FetchCardLocaleKey =
   | 'apiKey' | 'apiKeyHint' | 'apiKeySet' | 'apiKeyUnset'
   | 'baseUrl' | 'baseUrlHint' | 'customEndpointHint'
   | 'maxFetches' | 'maxFetchesHint'
+  | 'maxContent' | 'maxContentHint'
   | 'cacheSection' | 'cacheEnable' | 'cacheSeconds' | 'cacheHint'
   | 'rejectPrivate' | 'rejectPrivateEnable' | 'rejectPrivateHint'
   | 'chainSection' | 'chainCooldown' | 'chainQuotaSeconds' | 'chainHint'
@@ -42,6 +43,8 @@ export const en: Record<FetchCardLocaleKey, string> = {
   customEndpointHint: 'Endpoint of this custom provider; editing it updates where it fetches.',
   maxFetches: 'Fetch cap per session',
   maxFetchesHint: 'Stop fetching once this many calls happen in one session.',
+  maxContent: 'Max content chars',
+  maxContentHint: 'Max characters of one fetched body; longer content is truncated and marked. 0 = no cap (default 100,000).',
   cacheSection: 'Fetch cache',
   cacheEnable: 'Enable',
   cacheSeconds: 'seconds TTL',
@@ -103,6 +106,8 @@ export const zh: Record<FetchCardLocaleKey, string> = {
   customEndpointHint: '该自定义服务商的抓取地址；修改后即更新其接口。',
   maxFetches: '每会话抓取上限',
   maxFetchesHint: '单个会话抓取次数达到该值后停止。',
+  maxContent: '单次抓取内容上限',
+  maxContentHint: '单次抓取返回正文的最大字符数，超出截断并标记。0 = 不限（默认 100,000）。',
   cacheSection: '抓取缓存',
   cacheEnable: '启用',
   cacheSeconds: '秒有效期',

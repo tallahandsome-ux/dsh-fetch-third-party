@@ -33,6 +33,8 @@ export const DEFAULT_MAX_FETCHES = 10
 export const DEFAULT_CACHE_TTL_SECONDS = 600
 /** Default cache entry cap before LRU eviction. */
 export const DEFAULT_CACHE_MAX_ENTRIES = 200
+/** Default cap on one fetched body's characters (contract v1 bound; 0 = no cap). */
+export const DEFAULT_MAX_CONTENT_CHARS = 100_000
 /** Default model-facing tool name. */
 export const DEFAULT_TOOL_NAME = 'web_fetch_url'
 /** Default cooldown (seconds) after a provider quota-exhaustion. */
@@ -168,6 +170,8 @@ export interface Config {
   proxyEnabled: boolean
   /** User-registered custom provider instances (multi-custom coexistence). */
   customProviders: CustomProvider[]
+  /** Max characters of one fetched body passed to the model; 0 = no cap. */
+  maxContentChars: number
   /** Serve repeated fetches of the same URL from an in-process cache. */
   cacheEnabled: boolean
   /** Cache TTL in seconds for a fetched URL. */
@@ -204,6 +208,7 @@ export const Config: z<Config> = z.object({
   proxy: z.string().default(''),
   proxyEnabled: z.boolean().default(true),
   customProviders: z.array(CustomProviderSchema).default([]),
+  maxContentChars: z.natural().default(DEFAULT_MAX_CONTENT_CHARS),
   cacheEnabled: z.boolean().default(true),
   cacheTtlSeconds: z.natural().default(DEFAULT_CACHE_TTL_SECONDS),
   cacheMaxEntries: z.natural().default(DEFAULT_CACHE_MAX_ENTRIES),

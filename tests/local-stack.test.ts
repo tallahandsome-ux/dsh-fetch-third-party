@@ -12,6 +12,7 @@ function config(partial: Partial<Config>): Config {
     proxy: '',
     proxyEnabled: true,
     customProviders: [],
+    maxContentChars: 100_000,
     cacheEnabled: true,
     cacheTtlSeconds: 600,
     cacheMaxEntries: 200,

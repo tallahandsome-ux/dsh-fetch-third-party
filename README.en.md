@@ -123,6 +123,7 @@ http://127.0.0.1:27822
 ### Fetch cache and target safety
 
 - **Fetch cache** (card level-2): toggle + TTL (seconds). Repeated fetches of the same URL within the TTL are served from memory — no third-party quota, no budget. Enabled by default, 600s TTL.
+- **Content cap** (card level-2 "Max content chars"): max characters of one fetched body; longer content is truncated and marked. 0 = no cap (default 100,000, the contract-v1 bound).
 - **Reject private targets** (card level-2): refuse loopback / private / reserved targets before forwarding, preventing the model from reaching internal resources. Enabled by default.
 - **Tool name** (config `toolName`, not in the card): `web_fetch_url` (default) / `web_fetch` / `auto`. Choosing the official name `web_fetch` auto-falls-back to `web_fetch_url` if it is taken.
 - **Fallback chain** (card level-2): comma-separated ordered provider names (empty = adapter + fallback). Failing or quota-exhausted providers cool down (quota 3600s / normal 60s with exponential backoff) and recover automatically; the live order and cooldown state are shown below.
