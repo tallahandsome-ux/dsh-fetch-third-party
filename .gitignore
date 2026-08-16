@@ -4,8 +4,6 @@ node_modules/
 # build output
 lib/
 
-# lock (regenerated per install; the dev lock carries local link paths)
-pnpm-lock.yaml
 
 # packaging / misc
 *.tgz
