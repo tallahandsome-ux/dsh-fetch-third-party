@@ -209,16 +209,16 @@ Body: { "url": "<目标URL>", "formats": ["markdown"] }
 | 设置切换 | ✅ settings.yaml 改 adapter 即生效（热重载） |
 
 ### ⚠️ 网络环境注意事项（本机实测发现）
-- 本机 **r.jina.ai 被网络阻断**（DNS 指向 Facebook IP、直连超时），但走本地 HTTP 代理 `127.0.0.1:13004` 可通
+- 本机 **r.jina.ai 被网络阻断**（DNS 指向 Facebook IP、直连超时），但走本地 HTTP 代理（示例 `127.0.0.1:27822`）可通
 - **✅ 已内置卡片代理字段解决**（2026-08-16 追加）：卡片在服务商为 Jina 时显示"本地代理"输入行；适配器用 undici `ProxyAgent` 做**按请求**代理（`dispatcher`），**不依赖进程环境变量**、不影响其他网络流量
 - 端到端实测：**清空代理环境变量、仅靠卡片 proxy 字段** → Jina 抓取成功（HTTP 200）
-- 因此 **GUI 使用 Jina 无需再设环境变量**：卡片填 `http://127.0.0.1:13004` 即可；`scripts/start-web.ps1` 保留为备选方案
+- 因此 **GUI 使用 Jina 无需再设环境变量**：卡片填 `http://127.0.0.1:27822` 即可；`scripts/start-web.ps1` 保留为备选方案
 - Tavily 直连可达无需代理
 
 ### 代理功能说明（2026-08-16 新增）
 - 设置新增 `proxy` 字段（string，默认空）
 - 适配器上下文新增 `proxy`；适配器（tavily/jina/firecrawl）在配置代理时用 `undici.ProxyAgent` 作为 fetch `dispatcher`（按代理 URL 缓存复用连接）
-- 卡片：仅当服务商为 `jina` 时显示"本地代理（Jina）"输入行（placeholder `http://127.0.0.1:13004`）；**代理字段对全部适配器生效**（Firecrawl 实测也走该代理）
+- 卡片：仅当服务商为 `jina` 时显示"本地代理（Jina）"输入行（placeholder `http://127.0.0.1:27822`）；**代理字段对全部适配器生效**（Firecrawl 实测也走该代理）
 - 运行时依赖：`undici`（已加入 package.json dependencies，构建外部化）
 - 修复教训：`settings.yaml` 含中文（pet 名），PowerShell 读写需显式 UTF-8（已修复并验证解析）
 
@@ -238,7 +238,7 @@ Body: { "url": "<目标URL>", "formats": ["markdown"] }
 |---|---|
 | typecheck + build | ✅ |
 | 产物含 firecrawl（/v2/scrape + 卡片选项） | ✅ |
-| **用户 GUI 实测**（重启 + 填入 fc key + 新建会话） | ✅ **抓取成功**（adapter=firecrawl，走卡片代理 127.0.0.1:13004） |
+| **用户 GUI 实测**（重启 + 填入 fc key + 新建会话） | ✅ **抓取成功**（adapter=firecrawl，走卡片代理（示例端口）4） |
 | 卡片联动 | ✅ baseURL / apiKeyEnv 自动切换为 firecrawl 默认值 |
 | key 写入保险箱 | ✅ `apiKeyConfigured: true` |
 

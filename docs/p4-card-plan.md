@@ -24,7 +24,7 @@ P1 交付的是"最小可用卡片"；P4 的目标是把它补齐为**完整形�
 │  描述文案                                         │
 │  ── 基础设置 ──────────────────────────────      │
 │  服务商:   [Jina Reader ▾]  (hint)                │
-│  本地代理: [http://127.0.0.1:13004]  (hint)       │
+│  本地代理: [http://127.0.0.1:27822]  (hint)       │
 │  [ 测试连接 ] → 结果行（服务商/耗时/成败）          │
 │  ── 服务商配置 ──────────────── [▾] ──────      │
 │  接口地址: [https://r.jina.ai]  (hint)             │
@@ -96,7 +96,7 @@ web-fetch-third-party:
   fallback: jina             # 兜底：内置名 或 自定义名（默认 jina）
   baseURL: https://api.firecrawl.dev   # 仅主是内置时生效（其自定义地址）
   apiKeyEnv: FIRECRAWL_API_KEY
-  proxy: http://127.0.0.1:13004
+  proxy: http://127.0.0.1:27822
   maxFetchesPerSession: 10
   customProviders:           # ← 新增：自定义提供方实例表
     - name: my-n8n           # n8n webhook（契约 v1）

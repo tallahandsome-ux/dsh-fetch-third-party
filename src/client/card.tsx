@@ -396,7 +396,7 @@ export function FetchCard(props: FetchCardProps) {
                   style={{ ...styles.input, flex: 1 }}
                   value={view.proxy}
                   disabled={disabled || !view.proxyEnabled}
-                  placeholder="http://127.0.0.1:13004"
+                  placeholder="http://127.0.0.1:27822"
                   onChange={(event) => setView(prev => prev ? { ...prev, proxy: event.target.value } : prev)}
                   onBlur={(event) => void saveField('proxy', event.target.value)}
                 />

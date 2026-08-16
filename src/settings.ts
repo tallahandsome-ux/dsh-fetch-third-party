@@ -152,7 +152,7 @@ export interface Config {
   apiKeyEnv: string
   /** Per-session fetch budget cap. */
   maxFetchesPerSession: number
-  /** Optional HTTP proxy (e.g. http://127.0.0.1:13004) for networks that block the service. */
+  /** Optional HTTP proxy (e.g. http://127.0.0.1:27822) for networks that block the service. */
   proxy: string
   /** Whether the proxy is applied; the address is kept even when disabled. */
   proxyEnabled: boolean

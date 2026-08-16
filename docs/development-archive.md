@@ -21,7 +21,7 @@
 
 ### 阶段 P2.1：Jina 适配器 + 卡片本地代理
 - Jina Reader（GET r.jina.ai，匿名可用）；`KEY_ENV/BASE_URL_BY_ADAPTER` 按适配器回退默认
-- **网络发现**：本机 r.jina.ai 被 DNS 污染/阻断，需走本地 HTTP 代理 `127.0.0.1:13004`；Node fetch 走代理需 `NODE_USE_ENV_PROXY=1`
+- **网络发现**：本机 r.jina.ai 被 DNS 污染/阻断，需走本地 HTTP 代理（示例 `127.0.0.1:27822`）；Node fetch 走代理需 `NODE_USE_ENV_PROXY=1`
 - **卡片本地代理**：undici `ProxyAgent` 按请求代理（dispatcher），不依赖环境变量、不影响其他流量
 - 事故与修复：PowerShell 读写 settings.yaml 中文（pet 名）编码损坏 → 显式 UTF-8 重写修复
 
