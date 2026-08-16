@@ -12,6 +12,7 @@
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
+import { structureContent } from './structure.ts'
 import type { Config } from './settings.ts'
 
 /** Tool-name preference accepted by the section. */
@@ -72,20 +73,34 @@ export function applyWebFetchUrlTool(ctx: Context, config: () => Config): void {
           url: { type: 'string', required: true },
           statusCode: { type: 'integer', required: true },
           content: { type: 'string', required: true },
+          title: { type: 'string' },
+          headings: { type: 'array', items: { type: 'string' } },
+          links: { type: 'array', items: { type: 'string' } },
+          wordCount: { type: 'integer' },
+          readingTimeSec: { type: 'integer' },
         },
       },
       render: (_args, value) => [{
         type: 'text',
-        text: 'URL: ' + value.url + '\nStatus: ' + value.statusCode + '\n\n' + value.content,
+        text: 'URL: ' + value.url + '\nStatus: ' + value.statusCode
+          + (value.title !== undefined ? '\nTitle: ' + value.title : '')
+          + (value.wordCount !== undefined ? '\nWords: ' + value.wordCount + ' (~' + value.readingTimeSec + 's read)' : '')
+          + '\n\n' + value.content,
       }],
     },
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const result = await ctx.web.fetch({ url: args.url }, exec.signal)
+      const structured = structureContent(result.body.content)
       return {
         url: result.url,
         statusCode: result.statusCode,
         content: result.body.content,
+        ...structured.title !== undefined ? { title: structured.title } : {},
+        headings: structured.headings,
+        links: structured.links,
+        wordCount: structured.wordCount,
+        readingTimeSec: structured.readingTimeSec,
       }
     },
   }))
