@@ -144,7 +144,7 @@ export async function isPublicHttpURL(raw: string): Promise<boolean> {
 
 /** Full-check variant that throws a {@link WebError} with the reason. */
 export async function assertPublicHttpURL(raw: string): Promise<void> {
-  if (!isPublicHttpURL(raw)) {
+  if (!(await isPublicHttpURL(raw))) {
     throw new WebError('目标不是公网地址（或解析失败），已拒绝', 'WEB_PROVIDER_ERROR')
   }
 }

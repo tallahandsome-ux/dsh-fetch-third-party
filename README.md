@@ -97,6 +97,20 @@ dsh plugin --profile web add file:D:\plugins\dsh-fetch-third-party
 3. 选择服务商（如 Jina Reader，免 key），点「测试连接」→ 应显示成功。
 4. 新建会话，模型即可通过 `web_fetch_url` 工具抓取网页全文。
 
+## API Key 安全（必读）
+
+本插件的 API key 处理遵循两条硬性约束：
+
+1. **禁止明文读取**：key 只存于 DSH 托管保险箱 `~/.dsh/.credentials.yaml`（写入即 0600，仅本用户可读）。代码中唯一的读取用途是发送请求时的 `Authorization: Bearer <key>` 头——任何桥接接口、GUI 卡片、日志、错误信息都**不返回 key 明文**；设置卡片只显示「已配置 / 未配置」布尔状态（`apiKeyConfigured`），从不回显 key 本身。
+
+2. **禁止明文出现，必须脱敏**：如果任何功能（调试输出、诊断面板、测试回显）需要展示 key，**禁止输出完整明文**，必须脱敏——只显示首尾少量字符加 `***`（如 `tvly-dev-4y0S…FUb3C35`）。任何日志、错误信息或响应体中出现完整 key 一律视为缺陷（bug）。
+
+附加建议：
+
+- 不要把 key 写进会被提交的 `.env` / 配置文件，或粘贴到聊天记录——对话记录一旦泄露，key 即作废。
+- key 疑似泄露（出现在日志、对话、截图等）时，立即到服务商控制台**轮换**（生成新 key 并撤销旧 key）。
+- （可选，更严格）收紧凭据文件权限：`icacls "C:\Users\<你>\.dsh\.credentials.yaml" /inheritance:r /grant:r "%USERNAME%:(F)"`——以同一用户运行的 dsh 进程不受影响。
+
 ## 使用说明
 
 ### 服务商切换

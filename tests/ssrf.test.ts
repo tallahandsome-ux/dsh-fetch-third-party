@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  isHttpUrlPolicyCompliant, isPrivateOrReserved, isPublicHttpURL,
+  assertPublicHttpURL, isHttpUrlPolicyCompliant, isPrivateOrReserved, isPublicHttpURL,
   validateTargetURL,
 } from '../src/ssrf.ts'
 
@@ -97,5 +97,23 @@ describe('isPublicHttpURL', () => {
 
   it('resolves a real hostname to a public address', async () => {
     expect(await isPublicHttpURL('https://example.com/')).toBe(true)
+  })
+})
+
+describe('assertPublicHttpURL', () => {
+  it('rejects private IP literals and policy violations', async () => {
+    await expect(assertPublicHttpURL('https://127.0.0.1/')).rejects.toThrow(/公网/)
+    await expect(assertPublicHttpURL('https://[::1]/')).rejects.toThrow(/公网/)
+    await expect(assertPublicHttpURL('ftp://8.8.8.8/')).rejects.toThrow()
+    await expect(assertPublicHttpURL('https://u:p@example.com/')).rejects.toThrow()
+  })
+
+  it('passes a public hostname via DNS resolution', async () => {
+    await expect(assertPublicHttpURL('https://example.com/')).resolves.toBeUndefined()
+  })
+
+  it('rejects a hostname that resolves to a private address', async () => {
+    // 127.0.0.1.nip.io resolves to 127.0.0.1 — the DNS-rebinding case
+    await expect(assertPublicHttpURL('https://127.0.0.1.nip.io/')).rejects.toThrow(/公网/)
   })
 })

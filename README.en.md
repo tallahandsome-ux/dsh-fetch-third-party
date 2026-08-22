@@ -97,6 +97,35 @@ How to tell it is correct: the path should directly contain `package.json`, `src
 3. Pick a provider (e.g. Jina Reader, keyless) and click "Test connection" — it should succeed.
 4. Start a new session; the model can fetch full pages via the `web_fetch_url` tool.
 
+## API Key Security (required reading)
+
+This plugin handles API keys under two hard constraints:
+
+1. **Keys are never read back in plaintext**: a key lives only in the DSH-managed
+   vault `~/.dsh/.credentials.yaml` (written with mode `0600`, readable by the
+   current user only). The only read in code is to build the
+   `Authorization: Bearer <key>` header when a request goes out — no bridge
+   endpoint, GUI card, log line, or error message ever returns the key value;
+   the settings card only shows a `configured / not configured` boolean
+   (`apiKeyConfigured`) and never echoes the key itself.
+
+2. **If a key must ever be displayed, it must be masked**: any future feature
+   (debug output, diagnostics panel, test echo) that shows a key **must not
+   print it in full** — mask it to a few leading/trailing characters plus
+   `***` (e.g. `tvly-dev-4y0S…FUb3C35`). A full key appearing in any log,
+   error, or response body is treated as a defect (bug).
+
+Additional recommendations:
+
+- Do not put keys in `.env` files or config files that get committed, and do
+  not paste keys into chat transcripts — once a key appears in a conversation,
+  treat it as compromised.
+- If a key is suspected of leaking (logs, chats, screenshots), **rotate it
+  immediately** at the provider console (issue a new key, revoke the old one).
+- (Optional, stricter) tighten the vault file ACL:
+  `icacls "C:\Users\<you>\.dsh\.credentials.yaml" /inheritance:r /grant:r "%USERNAME%:(F)"`
+  — a dsh process running as the same user is unaffected.
+
 ## Usage
 
 ### Switching providers

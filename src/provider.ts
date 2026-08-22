@@ -21,7 +21,7 @@ import type { FetchBudget } from './budget.ts'
 import type { FetchCache } from './cache.ts'
 import { classifyFailure, FallbackRouter, type ChainRow } from './fallback.ts'
 import { isLoopbackURL } from './local-stack.ts'
-import { validateTargetURL } from './ssrf.ts'
+import { assertPublicHttpURL } from './ssrf.ts'
 import { resolveProvider, type Config } from './settings.ts'
 
 /**
@@ -102,8 +102,10 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
   async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
     const config = this.config()
     // Defense-in-depth: refuse private/reserved targets the model asks for.
+    // Full DNS resolution of every A/AAAA answer (not just IP-literal checks),
+    // closing the hostname/DNS-rebinding bypass on the request the model makes.
     if (config.rejectPrivateTargets) {
-      validateTargetURL(request.url)
+      await assertPublicHttpURL(request.url)
     }
     // A cache hit neither hits the third-party service nor consumes the budget.
     if (config.cacheEnabled) {
@@ -144,6 +146,9 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
     const request: WebFetchRequest = { url }
     const started = Date.now()
     try {
+      if (config.rejectPrivateTargets) {
+        await assertPublicHttpURL(url)
+      }
       const { result, servedBy } = await this.attemptWithChain(config, request, undefined, false)
       const capped = capContent(result, config.maxContentChars)
       return {
@@ -211,7 +216,15 @@ export class ThirdPartyFetchProvider implements WebFetchProvider {
 
   /** The chain used for routing: explicit config, else adapter+fallback. */
   private effectiveChain(config: Config): string[] {
-    if (config.fallbackChain.length > 0) return [...config.fallbackChain]
+    if (config.fallbackChain.length > 0) {
+      // Tolerate CJK-IME full-width separators (，、；) and stray whitespace in
+      // hand-edited config or card input so a single mangled entry cannot
+      // deaden the whole chain. Unknown names are skipped later at adapterFor.
+      const names = config.fallbackChain.flatMap((entry) =>
+        /[,，、;；]/.test(entry) ? entry.split(/[,，、;；\s]+/).filter(Boolean) : [entry.trim()],
+      )
+      return names.filter((name) => name.length > 0)
+    }
     return [config.adapter, config.fallback].filter((name) => name.length > 0)
   }
 

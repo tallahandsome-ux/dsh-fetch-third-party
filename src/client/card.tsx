@@ -86,6 +86,14 @@ const CUSTOM_ADAPTER_OPTIONS: ReadonlyArray<{ id: string; label: string }> = [
   { id: 'firecrawl', label: 'firecrawl（复用）' },
 ]
 
+/**
+ * Split a fallback-chain input into provider names. Accepts ASCII and full-width
+ * commas (，)、顿号（、）and semicolons（；）so CJK IME input can't silently break the chain.
+ */
+function splitChainInput(value: string): string[] {
+  return value.split(/[,，、;；\s]+/).map((s) => s.trim()).filter(Boolean)
+}
+
 /** Standard credential reference each built-in adapter defaults to (card-side mirror). */
 const KEY_ENV_BY_ADAPTER: Record<string, string> = {
   tavily: 'TAVILY_API_KEY',
@@ -107,7 +115,10 @@ export function FetchCard(props: FetchCardProps) {
   const [keyInput, setKeyInput] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
-  const [open, setOpen] = useState(true)
+  // Default-collapsed: the card is a rarely-used advanced section; users
+  // expand it on demand (level 2 stays expanded so one click reveals the
+  // primary provider + endpoint + cap + key + fallback controls together).
+  const [open, setOpen] = useState(false)
   const [l2Open, setL2Open] = useState(true)
   const [testUrl, setTestUrl] = useState('https://example.com')
   const [testing, setTesting] = useState(false)
@@ -604,10 +615,10 @@ export function FetchCard(props: FetchCardProps) {
                 <input
                   style={styles.input}
                   value={(view.fallbackChain ?? []).join(',')}
+                  placeholder="crawl4ai, web-tools, tavily, ...（逗号分隔，全角逗号也行）"
                   disabled={disabled}
-                  placeholder="crawl4ai,tavily,jina"
-                  onChange={(event) => setView(prev => prev ? { ...prev, fallbackChain: event.target.value.split(',').map(s => s.trim()).filter(Boolean) } : prev)}
-                  onBlur={(event) => { void saveField('fallbackChain', event.target.value.split(',').map(s => s.trim()).filter(Boolean)); void loadChain() }}
+                  onChange={(event) => setView(prev => prev ? { ...prev, fallbackChain: splitChainInput(event.target.value) } : prev)}
+                  onBlur={(event) => { void saveField('fallbackChain', splitChainInput(event.target.value)); void loadChain() }}
                 />
                 <p style={styles.hint}>{t('chainHint')}</p>
                 {chainRows.length > 0 && (
