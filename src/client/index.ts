@@ -25,7 +25,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * The plugin configuration section's card seat, spelled here with the same
      * shape as the sibling UI package without depending on it.
      */
-    'settings.plugin.item': { kind: 'list'; scope: 'root'; owner: FetchCardOwnerProps }
+    'settings.plugin.item': { kind: 'keyed'; scope: 'root'; owner: FetchCardOwnerProps }
   }
 }
 
@@ -44,8 +44,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
     name: 'settings.plugin.item',
-    id: 'fetch-third-party',
-    order: 30,
+    key: 'web-fetch-third-party',
     locale: 'fetch-third-party',
     inject: () => ({}),
   }, FetchCard))
